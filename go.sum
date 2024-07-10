@@ -1,0 +1,4 @@
+github.com/google/uuid v1.6.0 h1:NIvaJDMOsjHA8n1jAhLSgzrAzy1Hgr+hNrb57e+94F0=
+github.com/google/uuid v1.6.0/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
+github.com/joakim-ribier/go-utils v0.0.0-20240619210121-0027d8143070 h1:AqvHac+IsR0qW/Ug15EKrGdwQG8VY0HHHVomGRm7Oc0=
+github.com/joakim-ribier/go-utils v0.0.0-20240619210121-0027d8143070/go.mod h1:dobaprlSn2y798AucceAPsuO2dAhzTnTXlR0Es1hXIk=
