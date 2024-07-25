@@ -31,8 +31,8 @@ $ docker run -it --rm -p 3333:3333 -e GMOCKY_HOME=/home/{user}/data/gmocky-v2 -e
 
 2. Create a new mocked request
 
-```json
-curl --location 'http://localhost:3333/v1/new' \
+```bash
+$ curl --location 'http://localhost:3333/v1/new' \
 --header 'Content-Type: application/json' \
 --data '{
     "status": 200,
@@ -54,8 +54,8 @@ curl --location 'http://localhost:3333/v1/new' \
 
 3. Call it with the `uuid` value from the response
 
-```json
-curl -v --location 'http://localhost:3333/v1/ca243375-8db6-4ff3-839b-16f9f90edc64'
+```bash
+$ curl -v --location 'http://localhost:3333/v1/ca243375-8db6-4ff3-839b-16f9f90edc64'
 > ...
 < HTTP/1.1 200 OK
 < Content-Type: text/plain; charset=UTF-8
@@ -79,8 +79,8 @@ List APIs available
 
 #### Create New Mocked Request
 
-```json
-curl -X POST --location '~/v1/new' \
+```bash
+$ curl -X POST --location '~/v1/new' \
 --header 'Content-Type: application/json' \
 --data '{
     "status": 200,
@@ -108,8 +108,8 @@ curl -X POST --location '~/v1/new' \
 
 #### Get Mocked Request
 
-```json
-curl -v -X GET --location '~/v1/{uuid}?delay=100ms'
+```bash
+$ curl -v -X GET --location '~/v1/{uuid}?delay=100ms'
 > ...
 < HTTP/1.1 200 OK
 < Content-Type: text/plain; charset=UTF-8
@@ -125,8 +125,8 @@ Hello World
 
 #### List requests
 
-```json
-curl -X GET --location '~/v1/list' | jq
+```bash
+$ curl -X GET --location '~/v1/list' | jq
 [
   {
     "UUID": "03e122b3-42d7-41bd-92ca-35b93ea38c4e",
@@ -155,7 +155,8 @@ ok  	github.com/joakim-ribier/gmocky-v2/internal/server	2.181s	coverage: 91.0% o
 ### Build
 
 ```bash
-$ docker build -t gmocky-v2 .
+# `--platform linux/amd64` to build container for Github Action
+$ docker build --platform linux/amd64 -t gmocky-v2 .
 ...
 => exporting to image
 => => exporting layers
@@ -167,12 +168,20 @@ $ docker run -it --rm -p 3333:3333 -e GMOCKY_PORT=3333 gmocky-v2
 Server running on port 3333....
 ```
 
+### Push
+
+```bash
+$ docker tag gmocky-v2:latest joakimribier/gmocky-v2:latest
+$ docker login -u "{username}" docker.io
+$ docker push joakimribier/gmocky-v2:latest
+```
+
 ### Save and Load
 
 ```bash
 $ docker save -o gmocky-v2 gmocky-v2
 
-# copy the image where you want and load it on docker
+$ scp ... # copy the image
 
 $ docker load -i gmocky-v2
 ...
