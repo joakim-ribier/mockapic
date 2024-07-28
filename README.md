@@ -3,7 +3,13 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/joakim-ribier/gmocky-v2)](https://goreportcard.com/report/github.com/joakim-ribier/gmocky-v2)
 ![Software License](https://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat-square)
 [![Go Reference](https://pkg.go.dev/badge/image)](https://pkg.go.dev/github.com/joakim-ribier/gmocky-v2)
+
 [![codecov](https://codecov.io/gh/joakim-ribier/gmocky-v2/graph/badge.svg?token=AUAOC8992T)](https://codecov.io/gh/joakim-ribier/gmocky-v2)
+![example workflow](https://github.com/joakim-ribier/gmocky-v2/actions/workflows/build-test-and-coverage.yml/badge.svg)
+![example workflow](https://github.com/joakim-ribier/gmocky-v2/actions/workflows/build-and-push-container.yml/badge.svg)
+
+[![Docker Pulls](https://badgen.net/docker/pulls/joakimribier/gmocky-v2?icon=docker&label=pulls)](https://hub.docker.com/r/joakimribier/gmocky-v2/)
+[![Docker Image Size](https://badgen.net/docker/size/joakimribier/gmocky-v2?icon=docker&label=image%20size)](https://hub.docker.com/r/joakimribier/gmocky-v2/)
 
 `GMOCKY-v2` is a Go HTTP server - The easiest way to test your web services securely and privately using a Docker container in Golang.
 
@@ -65,6 +71,61 @@ Hello World
 ```
 
 for more details see [APIs](#apis)
+
+### How to use it in test
+
+[joakim-ribier/go-utils - Full example](https://github.com/joakim-ribier/go-utils/blob/main/pkg/httpsutil/httpsutil_test.go)
+
+```go
+// uses a sensible default on windows (tcp/http) and linux/osx (socket)
+pool, err := dockertest.NewPool("")
+if err != nil {
+  log.Fatalf("Could not construct pool: %s", err)
+}
+
+// uses pool to try to connect to Docker
+err = pool.Client.Ping()
+if err != nil {
+  log.Fatalf("Could not connect to Docker: %s", err)
+}
+
+resource, err := pool.RunWithOptions(&dockertest.RunOptions{
+  Repository:   "joakimribier/gmocky-v2",
+  Tag:          "latest",
+  Env:          []string{"GMOCKY_PORT=3333"},
+  ExposedPorts: []string{"3333"},
+}, func(config *docker.HostConfig) {
+  // set AutoRemove to true so that stopped container goes away by itself
+  config.AutoRemove = true
+  config.RestartPolicy = docker.RestartPolicy{Name: "no"}
+})
+if err != nil {
+  log.Fatalf("Could not start resource: %s", err)
+}
+
+resource.Expire(30) // hard kill the container in 3 minutes (180 Seconds)
+exposeHost = net.JoinHostPort("0.0.0.0", resource.GetPort("3333/tcp"))
+
+if err := pool.Retry(func() error {
+  req, err := NewHttpRequest(fmt.Sprintf("http://%s/", exposeHost), "")
+  if err != nil {
+    return err
+  }
+  _, err = req.Timeout("150ms").Call()
+  return err
+}); err != nil {
+  log.Fatalf("Could not connect to gmocky-v2 server: %s", err)
+}
+
+code := m.Run()
+
+// cannot defer this because os.Exit doesn't care for defer
+if err := pool.Purge(resource); err != nil {
+  log.Fatalf("Could not purge resource: %s", err)
+}
+
+os.Exit(code)
+```
 
 ## APIs
 
@@ -156,7 +217,8 @@ ok  	github.com/joakim-ribier/gmocky-v2/internal/server	2.181s	coverage: 91.0% o
 
 ```bash
 # `--platform linux/amd64` to build container for Github Action
-$ docker build --platform linux/amd64 -t gmocky-v2 .
+$
+
 ...
 => exporting to image
 => => exporting layers
