@@ -13,7 +13,33 @@
 
 `GMOCKY-v2` is a Go HTTP server - The easiest way to test your web services securely and privately using a Docker container in Golang.
 
-[Usage](#usage) - [APIs](#apis) - [Test](#test) - [Docker](#docker) - [License](#license)
+```bash
+$ curl http://localhost:3333/
+
+       ______        __  ___ ____   ______ __ ____  __      __   _____  ______ ____  _    __ ______ ____
+      / ____/       /  |/  // __ \ / ____// //_/\ \/ /    _/_/  / ___/ / ____// __ \| |  / // ____// __ \
+     / / __ ______ / /|_/ // / / // /    / ,<    \  /   _/_/    \__ \ / __/  / /_/ /| | / // __/  / /_/ /
+    / /_/ //_____// /  / // /_/ // /___ / /| |   / /  _/_/     ___/ // /___ / _, _/ | |/ // /___ / _, _ /_  _  _
+    \____/       /_/  /_/ \____/ \____//_/ |_|  /_/  /_/      /____//_____//_/ |_|  |___//_____//_/ |_| (_)(_)(_)
+                                                                    https://github.com/joakim-ribier/gmocky-v2
+
+
+ List available APIs
+
+ METHOD | ENDPOINT              | DESCRIPTION
+        |                       |
+ GET    | /                     | Get info
+        +-----------------------+-------------------------------------
+        | /static/content-types | Get allowed content types
+        | /static/charsets      | Get allowed charsets
+        | /static/status-codes  | Get allowed status codes
+        +-----------------------+-------------------------------------
+        | /v1/{uuid}            | Get a mocked request
+        | /v1/list              | Get the list of all mocked requests
+ POST   | /v1/add               | Create a new mocked request
+```
+
+[Usage](#usage) - [APIs](#apis) - [Test](#test) - [Docker](#docker) - [CI](#ci) - [License](#license)
 
 ## Usage
 
@@ -29,10 +55,15 @@ Deploy it as a service or use it directly in your development for integration te
 ```bash
 $ cd cmd/httpserver
 $ ./httpserver --home /home/{user}/data/gmocky-v2 --port 3333
+#$ docker run -it --rm -p 3333:3333 -e GMOCKY_HOME=/home/{user}/data/gmocky-v2 -e GMOCKY_PORT=3333 gmocky-v2
 
-# or directly with the container
-
-$ docker run -it --rm -p 3333:3333 -e GMOCKY_HOME=/home/{user}/data/gmocky-v2 -e GMOCKY_PORT=3333 gmocky-v2
+       ______        __  ___ ____   ______ __ ____  __      __   _____  ______ ____  _    __ ______ ____
+      / ____/       /  |/  // __ \ / ____// //_/\ \/ /    _/_/  / ___/ / ____// __ \| |  / // ____// __ \
+     / / __ ______ / /|_/ // / / // /    / ,<    \  /   _/_/    \__ \ / __/  / /_/ /| | / // __/  / /_/ /
+    / /_/ //_____// /  / // /_/ // /___ / /| |   / /  _/_/     ___/ // /___ / _, _/ | |/ // /___ / _, _ /_  _  _
+    \____/       /_/  /_/ \____/ \____//_/ |_|  /_/  /_/      /____//_____//_/ |_|  |___//_____//_/ |_| (_)(_)(_)
+                                                                    https://github.com/joakim-ribier/gmocky-v2
+Server running on port 3333....
 ```
 
 2. Create a new mocked request
@@ -134,6 +165,9 @@ List APIs available
 | Method | Endpoint                              | Description |
 | ---    | ---                                   | ---
 | GET    | /                                     | Get info
+| GET    | /static/content-types                 | Get allowed content types
+| GET    | /static/charsets                      | Get allowed charsets
+| GET    | /static/status-codes                  | Get allowed status codes
 | GET    | [/v1/{uuid}](#get-mocked-request)     | Get a mocked request
 | GET    | [/v1/list](#list-requests)            | Get the list of all mocked requests
 | POST   | [/v1/add](#create-new-mocked-request) | Create a new mocked request
@@ -251,6 +285,17 @@ dd63366eb47d: Loading layer [==================================================>
 3025ebe291d8: Loading layer [==================================================>]  7.267MB/7.267MB
 Loaded image: gmocky-v2:latest
 ```
+
+## CI
+
+### Github action workflows *.yml
+
+|     | Name                                | Description
+| --- | ---                                 | ---
+|     | `build_test_and_coverage_reusable`  | Reusable workflow: build, execute test and push coverage (`on condition`)
+| #1  | `build-test-and-coverage`           | Calls the reusable workflow on `main` branch
+| #2  | `build-and-push-container`          | 1. Builds and pushes container on Docker Hub if the workflow `#1` is completed</br>2. Sends event to [joakim-ribier/go-utils](https://github.com/joakim-ribier/go-utils) to trigger action `trigger-from-event:build_and_test`
+| #3  | `pr-test-only.yml`                  | Calls the reusable workflow on `pull request` (without coverage)
 
 ## License
 
