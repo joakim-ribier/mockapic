@@ -12,6 +12,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/joakim-ribier/gmocky-v2/internal"
+	"github.com/joakim-ribier/gmocky-v2/pkg"
 	"github.com/joakim-ribier/go-utils/pkg/httpsutil"
 	"github.com/joakim-ribier/go-utils/pkg/jsonsutil"
 )
@@ -52,7 +53,7 @@ func (m *MockerTest) New(body []byte) (*string, error) {
 // checking for a valid return value.
 func TestListen(t *testing.T) {
 	var askShutdown = false
-	httpServer := NewHTTPServer("3333", &MockerTest{})
+	httpServer := NewHTTPServer("4333", &MockerTest{})
 	defer httpServer.Server.Shutdown(context.Background())
 
 	go func() {
@@ -63,14 +64,14 @@ func TestListen(t *testing.T) {
 	}()
 	time.Sleep(100 * time.Millisecond)
 
-	req, _ := httpsutil.NewHttpRequest("http://localhost:3333/", "")
+	req, _ := httpsutil.NewHttpRequest("http://localhost:4333/", "")
 	resp, _ := req.Call()
 	if resp.StatusCode != 200 {
 		t.Fatalf(`result: {%v} but expected {%v}`, resp.StatusCode, 200)
 	}
 
 	// testing '404' if bad endpoint is called
-	req, _ = httpsutil.NewHttpRequest("http://localhost:3333/", "")
+	req, _ = httpsutil.NewHttpRequest("http://localhost:4333/", "")
 	resp, _ = req.Method("POST").Call()
 	if resp.StatusCode != 404 {
 		t.Fatalf(`result: {%v} but expected {%v}`, resp.StatusCode, 200)
@@ -93,8 +94,62 @@ func TestRootEndpoint(t *testing.T) {
 	NewHTTPServer("{port}", &MockerTest{}).home(w, req)
 
 	_, body := geResultResponse(w, t)
-	if string(body) != internal.LOGO {
+	if !strings.Contains(string(body), internal.LOGO) {
 		t.Fatalf(`result: {%v} but expected {%v}`, string(body), internal.LOGO)
+	}
+}
+
+// ##
+// #### ~/static/content-types endpoint
+// ##
+
+// TestGetContentTypesEndpoint calls HTTPServer.getContentTypes(http.ResponseWriter, *http.Request),
+// checking for a valid return value.
+func TestGetContentTypesEndpoint(t *testing.T) {
+	req := httptest.NewRequest(http.MethodGet, "/static/content-types", nil)
+	w := httptest.NewRecorder()
+
+	NewHTTPServer("{port}", &MockerTest{}).getContentTypes(w, req)
+
+	_, body := geResultResponse(w, t)
+	if !strings.Contains(string(body), "application/json") {
+		t.Fatalf(`result: {%v} but expected {%v}`, string(body), pkg.CONTENT_TYPES)
+	}
+}
+
+// ##
+// #### ~/static/charsets endpoint
+// ##
+
+// TestGetCharsetsEndpoint calls HTTPServer.getCharsets(http.ResponseWriter, *http.Request),
+// checking for a valid return value.
+func TestGetCharsetsEndpoint(t *testing.T) {
+	req := httptest.NewRequest(http.MethodGet, "/static/charsets", nil)
+	w := httptest.NewRecorder()
+
+	NewHTTPServer("{port}", &MockerTest{}).getCharsets(w, req)
+
+	_, body := geResultResponse(w, t)
+	if !strings.Contains(string(body), "ISO-8859-1") {
+		t.Fatalf(`result: {%v} but expected {%v}`, string(body), pkg.CHARSET)
+	}
+}
+
+// ##
+// #### ~/static/status-codes endpoint
+// ##
+
+// TestGetStatusCodesEndpoint calls HTTPServer.getStatusCodes(http.ResponseWriter, *http.Request),
+// checking for a valid return value.
+func TestGetStatusCodesEndpoint(t *testing.T) {
+	req := httptest.NewRequest(http.MethodGet, "/static/content-types", nil)
+	w := httptest.NewRecorder()
+
+	NewHTTPServer("{port}", &MockerTest{}).getStatusCodes(w, req)
+
+	_, body := geResultResponse(w, t)
+	if !strings.Contains(string(body), "Method Not Allowed") {
+		t.Fatalf(`result: {%v} but expected {%v}`, string(body), pkg.HTTP_CODES)
 	}
 }
 

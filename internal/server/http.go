@@ -8,7 +8,9 @@ import (
 	"path"
 
 	"github.com/google/uuid"
+	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/joakim-ribier/gmocky-v2/internal"
+	"github.com/joakim-ribier/gmocky-v2/pkg"
 	"github.com/joakim-ribier/go-utils/pkg/jsonsutil"
 )
 
@@ -41,6 +43,11 @@ func (s HTTPServer) Listen() error {
 	}
 
 	handleFunc("GET", "/", s.home)
+
+	handleFunc("GET", "/static/content-types", s.getContentTypes)
+	handleFunc("GET", "/static/charsets", s.getCharsets)
+	handleFunc("GET", "/static/status-codes", s.getStatusCodes)
+
 	handleFunc("GET", "/v1/", s.findMock)
 	handleFunc("GET", "/v1/list", s.list)
 	handleFunc("POST", "/v1/new", s.addNewMock)
@@ -51,7 +58,82 @@ func (s HTTPServer) Listen() error {
 func (s HTTPServer) home(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(200)
 	w.Header().Set("Content-Type", "text/plain")
-	w.Write([]byte(internal.LOGO))
+
+	t := table.NewWriter()
+	t.SetTitle("List available APIs\n")
+
+	t.SetStyle(table.StyleDefault)
+	t.Style().Options.DrawBorder = false
+	t.Style().Options.SeparateColumns = true
+	t.Style().Options.SeparateFooter = true
+	t.Style().Options.SeparateHeader = false
+	t.Style().Options.SeparateRows = false
+
+	t.AppendHeader(table.Row{"Method\n", "Endpoint\n", "Description\n"})
+
+	t.SetColumnConfigs([]table.ColumnConfig{
+		{Number: 1, AutoMerge: true},
+		{Number: 2, AutoMerge: true},
+		{Number: 3, AutoMerge: true},
+	})
+
+	t.AppendSeparator()
+	t.AppendRows([]table.Row{
+		{"GET", "/", "Get info"},
+	})
+	t.AppendSeparator()
+	t.AppendRows([]table.Row{
+		{"GET", "/static/content-types", "Get allowed content types"},
+		{"GET", "/static/charsets", "Get allowed charsets"},
+		{"GET", "/static/status-codes", "Get allowed status codes"},
+	})
+	t.AppendSeparator()
+	t.AppendRows([]table.Row{
+		{"GET", "/v1/{uuid}", "Get a mocked request"},
+		{"GET", "/v1/list", "Get the list of all mocked requests"},
+		{"POST", "/v1/add", "Create a new mocked request"},
+	})
+
+	w.Write([]byte(fmt.Sprintf(
+		"%s\n\n%s",
+		internal.LOGO,
+		t.Render())))
+}
+
+func (s HTTPServer) getContentTypes(w http.ResponseWriter, r *http.Request) {
+	data, err := jsonsutil.Marshal(pkg.CONTENT_TYPES)
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+
+	w.WriteHeader(200)
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(data)
+}
+
+func (s HTTPServer) getCharsets(w http.ResponseWriter, r *http.Request) {
+	data, err := jsonsutil.Marshal(pkg.CHARSET)
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+
+	w.WriteHeader(200)
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(data)
+}
+
+func (s HTTPServer) getStatusCodes(w http.ResponseWriter, r *http.Request) {
+	data, err := jsonsutil.Marshal(pkg.HTTP_CODES)
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+
+	w.WriteHeader(200)
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(data)
 }
 
 func (s HTTPServer) findMock(w http.ResponseWriter, r *http.Request) {
