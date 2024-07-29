@@ -1,7 +1,4 @@
-# This workflow will build a golang project
-# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-go
-
-name: Build and Push Docker image to Docker Hub
+name: Build and push docker image to Docker Hub
 
 on:
   workflow_run:
@@ -35,7 +32,7 @@ jobs:
 
     - name: Extract metadata (tags, labels) for Docker
       id: meta
-      uses: docker/metadata-action@v3
+      uses: docker/metadata-action@v5
       with:
         images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME}}
 
@@ -56,3 +53,10 @@ jobs:
         subject-digest: ${{ steps.push.outputs.digest }}
         push-to-registry: false
         #github-token: ${{ secrets.DOCKER_TOKEN }}
+
+    - name: Repository Dispatch
+      uses: peter-evans/repository-dispatch@v3
+      with:
+        token: ${{ secrets.GMOCKY_V2_TOKEN }}
+        repository: joakim-ribier/go-utils
+        event-type: 'trigger-from-event:build_and_test'
