@@ -103,6 +103,21 @@ Hello World
 
 for more details see [APIs](#apis)
 
+### SSL/Tls
+
+Run the HTTP server in SSL/Tls (`https`) mode with certificate.
+
+* `--ssl` (or `$GMOCKY_SSL`) must be `true`
+* `--cert` (or `$GMOCKY_CERT`) must be contain a `gmocky.crt` and `gmocky.key` files
+
+```bash
+$ ./httpserver \
+  --home /home/{user}/data/gmocky-v2 \
+  --port 3333 \
+  --ssl true \
+  --cert {certificate-path-directory}
+```
+
 ### How to use it in test
 
 [joakim-ribier/go-utils - Full example](https://github.com/joakim-ribier/go-utils/blob/main/pkg/httpsutil/httpsutil_test.go)
@@ -251,7 +266,7 @@ ok  	github.com/joakim-ribier/gmocky-v2/internal/server	2.181s	coverage: 91.0% o
 
 ```bash
 # `--platform linux/amd64` to build container for Github Action
-$
+$ docker build --platform linux/amd64 -t gmocky-v2 .
 
 ...
 => exporting to image

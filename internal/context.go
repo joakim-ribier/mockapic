@@ -12,4 +12,10 @@ const LOGO = `
 `
 
 var GMOCKY_HOME = os.Getenv("GMOCKY_HOME")
+
 var GMOCKY_PORT = os.Getenv("GMOCKY_PORT")
+
+var GMOCKY_SSL = os.Getenv("GMOCKY_SSL")
+var GMOCKY_CERT_DIRECTORY = os.Getenv("GMOCKY_CERT")
+var GMOCKY_CERT_FILENAME = "gmocky.crt"
+var GMOCKY_PEM_FILENAME = "gmocky.key"
