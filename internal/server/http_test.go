@@ -1,7 +1,6 @@
 package server
 
 import (
-	"context"
 	"errors"
 	"io"
 	"net/http"
@@ -52,33 +51,60 @@ func (m *MockerTest) New(body []byte) (*string, error) {
 // TestListen calls HTTPServer.Listen(),
 // checking for a valid return value.
 func TestListen(t *testing.T) {
-	var askShutdown = false
-	httpServer := NewHTTPServer("4333", &MockerTest{})
-	defer httpServer.Server.Shutdown(context.Background())
+	httpServer := NewHTTPServer("3334", false, "", &MockerTest{})
 
 	go func() {
 		err := httpServer.Listen()
-		if err != nil && !askShutdown {
+		if err != nil {
 			t.Errorf("Error: %v", err)
 		}
 	}()
 	time.Sleep(100 * time.Millisecond)
 
-	req, _ := httpsutil.NewHttpRequest("http://localhost:4333/", "")
+	req, _ := httpsutil.NewHttpRequest("http://localhost:3334/", "")
 	resp, _ := req.Call()
+
 	if resp.StatusCode != 200 {
 		t.Fatalf(`result: {%v} but expected {%v}`, resp.StatusCode, 200)
 	}
 
 	// testing '404' if bad endpoint is called
-	req, _ = httpsutil.NewHttpRequest("http://localhost:4333/", "")
+	req, _ = httpsutil.NewHttpRequest("http://localhost:3334/", "")
 	resp, _ = req.Method("POST").Call()
 	if resp.StatusCode != 404 {
 		t.Fatalf(`result: {%v} but expected {%v}`, resp.StatusCode, 200)
 	}
+}
 
-	// shutdown safely the server with defer
-	askShutdown = true
+// TestListen calls HTTPServer.Listen(),
+// checking for a valid return value.
+func TestListenSSL(t *testing.T) {
+	internal.GMOCKY_CERT_FILENAME = "example.crt"
+	internal.GMOCKY_PEM_FILENAME = "example.key"
+
+	httpServer := NewHTTPServer("3333", true, "../../cert", &MockerTest{})
+
+	go func() {
+		err := httpServer.Listen()
+		if err != nil {
+			t.Errorf("Error: %v", err)
+		}
+	}()
+	time.Sleep(100 * time.Millisecond)
+
+	req, _ := httpsutil.NewHttpRequest("https://localhost:3333/", "")
+	resp, _ := req.InsecureSkipVerify().Call()
+
+	if resp.StatusCode != 200 {
+		t.Fatalf(`result: {%v} but expected {%v}`, resp, 200)
+	}
+
+	// testing '404' if bad endpoint is called
+	req, _ = httpsutil.NewHttpRequest("https://localhost:3333/", "")
+	resp, _ = req.Method("POST").InsecureSkipVerify().Call()
+	if resp.StatusCode != 404 {
+		t.Fatalf(`result: {%v} but expected {%v}`, resp.StatusCode, 200)
+	}
 }
 
 // ##
@@ -91,7 +117,7 @@ func TestRootEndpoint(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	w := httptest.NewRecorder()
 
-	NewHTTPServer("{port}", &MockerTest{}).home(w, req)
+	NewHTTPServer("{port}", false, "", &MockerTest{}).home(w, req)
 
 	_, body := geResultResponse(w, t)
 	if !strings.Contains(string(body), internal.LOGO) {
@@ -109,7 +135,7 @@ func TestGetContentTypesEndpoint(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/static/content-types", nil)
 	w := httptest.NewRecorder()
 
-	NewHTTPServer("{port}", &MockerTest{}).getContentTypes(w, req)
+	NewHTTPServer("{port}", false, "", &MockerTest{}).getContentTypes(w, req)
 
 	_, body := geResultResponse(w, t)
 	if !strings.Contains(string(body), "application/json") {
@@ -127,7 +153,7 @@ func TestGetCharsetsEndpoint(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/static/charsets", nil)
 	w := httptest.NewRecorder()
 
-	NewHTTPServer("{port}", &MockerTest{}).getCharsets(w, req)
+	NewHTTPServer("{port}", false, "", &MockerTest{}).getCharsets(w, req)
 
 	_, body := geResultResponse(w, t)
 	if !strings.Contains(string(body), "ISO-8859-1") {
@@ -145,7 +171,7 @@ func TestGetStatusCodesEndpoint(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/static/content-types", nil)
 	w := httptest.NewRecorder()
 
-	NewHTTPServer("{port}", &MockerTest{}).getStatusCodes(w, req)
+	NewHTTPServer("{port}", false, "", &MockerTest{}).getStatusCodes(w, req)
 
 	_, body := geResultResponse(w, t)
 	if !strings.Contains(string(body), "Method Not Allowed") {
@@ -163,7 +189,7 @@ func TestFindMockResponseEndpointWithInvalidUUID(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/v1/wrong-uuid", nil)
 	w := httptest.NewRecorder()
 
-	NewHTTPServer("{port}", &MockerTest{}).findMock(w, req)
+	NewHTTPServer("{port}", false, "", &MockerTest{}).findMock(w, req)
 
 	res, body := geResultResponse(w, t)
 	if res.Status != "409 Conflict" || string(body) != `{"message": "invalid UUID length: 10"}` {
@@ -177,7 +203,7 @@ func TestFindMockResponseEndpointUUIDNotFound(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/v1/"+uuid.NewString(), nil)
 	w := httptest.NewRecorder()
 
-	NewHTTPServer("{port}", &MockerTest{}).findMock(w, req)
+	NewHTTPServer("{port}", false, "", &MockerTest{}).findMock(w, req)
 
 	res, _ := geResultResponse(w, t)
 	if res.Status != "404 Not Found" {
@@ -199,7 +225,7 @@ func TestFindMockResponseEndpoint(t *testing.T) {
 			Body:        "Hello World",
 		},
 	}
-	NewHTTPServer("{port}", mocker).findMock(w, req)
+	NewHTTPServer("{port}", false, "", mocker).findMock(w, req)
 
 	res, _ := geResultResponse(w, t)
 	if res.Status != "200 OK" {
@@ -217,7 +243,7 @@ func TestListEndpointWithError(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/v1/list", nil)
 	w := httptest.NewRecorder()
 
-	NewHTTPServer("{port}", &MockerTest{}).list(w, req)
+	NewHTTPServer("{port}", false, "", &MockerTest{}).list(w, req)
 
 	res, body := geResultResponse(w, t)
 	if res.Status != "409 Conflict" || string(body) != `{"message": "error to list mocked responses"}` {
@@ -243,7 +269,7 @@ func TestListEndpoint(t *testing.T) {
 			},
 		},
 	}
-	NewHTTPServer("{port}", mocker).list(w, req)
+	NewHTTPServer("{port}", false, "", mocker).list(w, req)
 
 	res, body := geResultResponse(w, t)
 	s, err := jsonsutil.Unmarshal[[]internal.MockedRequestLight](body)
@@ -272,7 +298,7 @@ func TestAddNewEndpoint(t *testing.T) {
 	w := httptest.NewRecorder()
 
 	mocker := &MockerTest{mockResponse: nil}
-	NewHTTPServer("{port}", mocker).addNewMock(w, req)
+	NewHTTPServer("{port}", false, "", mocker).addNewMock(w, req)
 
 	res, body := geResultResponse(w, t)
 
@@ -296,7 +322,7 @@ func TestAddNewEndpointWithBadBody(t *testing.T) {
 	w := httptest.NewRecorder()
 
 	mocker := &MockerTest{mockResponse: nil}
-	NewHTTPServer("{port}", mocker).addNewMock(w, req)
+	NewHTTPServer("{port}", false, "", mocker).addNewMock(w, req)
 
 	res, body := geResultResponse(w, t)
 	t.Log(string(body))

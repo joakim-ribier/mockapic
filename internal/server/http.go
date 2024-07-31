@@ -16,24 +16,30 @@ import (
 
 // HTTPServer represents a http server struct
 type HTTPServer struct {
-	Server *http.Server
-	Port   string
-	mocker internal.Mocker
+	Port          string
+	SSLEnabled    bool
+	certDirectory string
+	mocker        internal.Mocker
 }
 
 // NewHTTPServer creates and initializes a {HTTPServer} struct
-func NewHTTPServer(port string, mocker internal.Mocker) *HTTPServer {
+func NewHTTPServer(
+	port string, ssl bool, certDirectory string, mocker internal.Mocker) *HTTPServer {
+
 	return &HTTPServer{
-		Server: &http.Server{Addr: ":" + port},
-		Port:   port,
-		mocker: mocker,
+		Port:          port,
+		mocker:        mocker,
+		SSLEnabled:    ssl,
+		certDirectory: certDirectory,
 	}
 }
 
 // Listen creates the http server and dispatches the incoming requests
 func (s HTTPServer) Listen() error {
+	server := http.NewServeMux()
+
 	handleFunc := func(method, pattern string, handle func(w http.ResponseWriter, r *http.Request)) {
-		http.HandleFunc(pattern, func(w http.ResponseWriter, r *http.Request) {
+		server.HandleFunc(pattern, func(w http.ResponseWriter, r *http.Request) {
 			if r.Method != method {
 				w.WriteHeader(404)
 				return
@@ -52,7 +58,16 @@ func (s HTTPServer) Listen() error {
 	handleFunc("GET", "/v1/list", s.list)
 	handleFunc("POST", "/v1/new", s.addNewMock)
 
-	return s.Server.ListenAndServe()
+	if s.SSLEnabled {
+		return http.ListenAndServeTLS(
+			":"+s.Port,
+			s.certDirectory+"/"+internal.GMOCKY_CERT_FILENAME,
+			s.certDirectory+"/"+internal.GMOCKY_PEM_FILENAME,
+			server,
+		)
+	} else {
+		return http.ListenAndServe(":"+s.Port, server)
+	}
 }
 
 func (s HTTPServer) home(w http.ResponseWriter, r *http.Request) {
