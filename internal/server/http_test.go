@@ -3,8 +3,11 @@ package server
 import (
 	"errors"
 	"io"
+	"log"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -19,9 +22,9 @@ import (
 type MockerTest struct {
 	mockResponse       *internal.MockedRequest
 	mockResponseLights []internal.MockedRequestLight
+	clean              bool
 }
 
-// Get finds the mocked request {{mockId}} on the storage.
 func (m *MockerTest) Get(mockId string) (*internal.MockedRequest, error) {
 	if m.mockResponse != nil {
 		return m.mockResponse, nil
@@ -29,7 +32,6 @@ func (m *MockerTest) Get(mockId string) (*internal.MockedRequest, error) {
 	return nil, errors.New("mockId does not exist")
 }
 
-// List gets all mocked request on the storage.
 func (m *MockerTest) List() ([]internal.MockedRequestLight, error) {
 	if m.mockResponseLights != nil {
 		return m.mockResponseLights, nil
@@ -37,7 +39,6 @@ func (m *MockerTest) List() ([]internal.MockedRequestLight, error) {
 	return nil, errors.New("error to list mocked responses")
 }
 
-// New adds a new mocked request abd returns the new UUID of the mock.
 func (m *MockerTest) New(body []byte) (*string, error) {
 	mock, err := jsonsutil.Unmarshal[internal.MockedRequest](body)
 	if err != nil {
@@ -48,10 +49,29 @@ func (m *MockerTest) New(body []byte) (*string, error) {
 	return &r, nil
 }
 
+func (m *MockerTest) Clean(maxLimit int) (int, error) {
+	m.clean = true
+	return 0, nil
+}
+
+var workingDirectory string
+
+func TestMain(m *testing.M) {
+	dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
+	if err != nil {
+		log.Fatal(err)
+	}
+	workingDirectory = dir
+
+	exitVal := m.Run()
+
+	os.Exit(exitVal)
+}
+
 // TestListen calls HTTPServer.Listen(),
 // checking for a valid return value.
 func TestListen(t *testing.T) {
-	httpServer := NewHTTPServer("3334", false, "", &MockerTest{})
+	httpServer := NewHTTPServer("3334", false, "", workingDirectory, &MockerTest{})
 
 	go func() {
 		err := httpServer.Listen()
@@ -82,7 +102,7 @@ func TestListenSSL(t *testing.T) {
 	internal.GMOCKY_CERT_FILENAME = "example.crt"
 	internal.GMOCKY_PEM_FILENAME = "example.key"
 
-	httpServer := NewHTTPServer("3333", true, "../../cert", &MockerTest{})
+	httpServer := NewHTTPServer("3333", true, "../../cert", workingDirectory, &MockerTest{})
 
 	go func() {
 		err := httpServer.Listen()
@@ -117,7 +137,7 @@ func TestRootEndpoint(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	w := httptest.NewRecorder()
 
-	NewHTTPServer("{port}", false, "", &MockerTest{}).home(w, req)
+	NewHTTPServer("{port}", false, "", workingDirectory, &MockerTest{}).home(w, req)
 
 	_, body := geResultResponse(w, t)
 	if !strings.Contains(string(body), internal.LOGO) {
@@ -135,7 +155,7 @@ func TestGetContentTypesEndpoint(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/static/content-types", nil)
 	w := httptest.NewRecorder()
 
-	NewHTTPServer("{port}", false, "", &MockerTest{}).getContentTypes(w, req)
+	NewHTTPServer("{port}", false, "", workingDirectory, &MockerTest{}).getContentTypes(w, req)
 
 	_, body := geResultResponse(w, t)
 	if !strings.Contains(string(body), "application/json") {
@@ -153,7 +173,7 @@ func TestGetCharsetsEndpoint(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/static/charsets", nil)
 	w := httptest.NewRecorder()
 
-	NewHTTPServer("{port}", false, "", &MockerTest{}).getCharsets(w, req)
+	NewHTTPServer("{port}", false, "", workingDirectory, &MockerTest{}).getCharsets(w, req)
 
 	_, body := geResultResponse(w, t)
 	if !strings.Contains(string(body), "ISO-8859-1") {
@@ -171,7 +191,7 @@ func TestGetStatusCodesEndpoint(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/static/content-types", nil)
 	w := httptest.NewRecorder()
 
-	NewHTTPServer("{port}", false, "", &MockerTest{}).getStatusCodes(w, req)
+	NewHTTPServer("{port}", false, "", workingDirectory, &MockerTest{}).getStatusCodes(w, req)
 
 	_, body := geResultResponse(w, t)
 	if !strings.Contains(string(body), "Method Not Allowed") {
@@ -189,7 +209,7 @@ func TestFindMockResponseEndpointWithInvalidUUID(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/v1/wrong-uuid", nil)
 	w := httptest.NewRecorder()
 
-	NewHTTPServer("{port}", false, "", &MockerTest{}).findMock(w, req)
+	NewHTTPServer("{port}", false, "", workingDirectory, &MockerTest{}).findMock(w, req)
 
 	res, body := geResultResponse(w, t)
 	if res.Status != "409 Conflict" || string(body) != `{"message": "invalid UUID length: 10"}` {
@@ -203,7 +223,7 @@ func TestFindMockResponseEndpointUUIDNotFound(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/v1/"+uuid.NewString(), nil)
 	w := httptest.NewRecorder()
 
-	NewHTTPServer("{port}", false, "", &MockerTest{}).findMock(w, req)
+	NewHTTPServer("{port}", false, "", workingDirectory, &MockerTest{}).findMock(w, req)
 
 	res, _ := geResultResponse(w, t)
 	if res.Status != "404 Not Found" {
@@ -225,7 +245,7 @@ func TestFindMockResponseEndpoint(t *testing.T) {
 			Body:        "Hello World",
 		},
 	}
-	NewHTTPServer("{port}", false, "", mocker).findMock(w, req)
+	NewHTTPServer("{port}", false, "", workingDirectory, mocker).findMock(w, req)
 
 	res, _ := geResultResponse(w, t)
 	if res.Status != "200 OK" {
@@ -243,7 +263,7 @@ func TestListEndpointWithError(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/v1/list", nil)
 	w := httptest.NewRecorder()
 
-	NewHTTPServer("{port}", false, "", &MockerTest{}).list(w, req)
+	NewHTTPServer("{port}", false, "", workingDirectory, &MockerTest{}).list(w, req)
 
 	res, body := geResultResponse(w, t)
 	if res.Status != "409 Conflict" || string(body) != `{"message": "error to list mocked responses"}` {
@@ -269,7 +289,7 @@ func TestListEndpoint(t *testing.T) {
 			},
 		},
 	}
-	NewHTTPServer("{port}", false, "", mocker).list(w, req)
+	NewHTTPServer("{port}", false, "", workingDirectory, mocker).list(w, req)
 
 	res, body := geResultResponse(w, t)
 	s, err := jsonsutil.Unmarshal[[]internal.MockedRequestLight](body)
@@ -289,6 +309,8 @@ func TestListEndpoint(t *testing.T) {
 // TestAddNewEndpoint calls HTTPServer.addNewMock(http.ResponseWriter, *http.Request),
 // checking for a valid return value.
 func TestAddNewEndpoint(t *testing.T) {
+	internal.GMOCKY_REQ_MAX_LIMIT = 100
+
 	req := httptest.NewRequest(http.MethodPost, "/v1/new", strings.NewReader(`{
     	"status": 200,
     	"contentType": "text/plain",
@@ -297,8 +319,8 @@ func TestAddNewEndpoint(t *testing.T) {
 	}`))
 	w := httptest.NewRecorder()
 
-	mocker := &MockerTest{mockResponse: nil}
-	NewHTTPServer("{port}", false, "", mocker).addNewMock(w, req)
+	mocker := &MockerTest{mockResponse: nil, clean: false}
+	NewHTTPServer("{port}", false, "", workingDirectory, mocker).addNewMock(w, req)
 
 	res, body := geResultResponse(w, t)
 
@@ -310,7 +332,8 @@ func TestAddNewEndpoint(t *testing.T) {
 	}
 	if res.Status != "200 OK" ||
 		!strings.Contains(string(body), `{"uuid":`) ||
-		!mocker.mockResponse.Equals(*expected) {
+		!mocker.mockResponse.Equals(*expected) ||
+		!mocker.clean {
 		t.Fatalf(`result: {%v} but expected {%v}`, res, expected)
 	}
 }
@@ -322,7 +345,7 @@ func TestAddNewEndpointWithBadBody(t *testing.T) {
 	w := httptest.NewRecorder()
 
 	mocker := &MockerTest{mockResponse: nil}
-	NewHTTPServer("{port}", false, "", mocker).addNewMock(w, req)
+	NewHTTPServer("{port}", false, "", workingDirectory, mocker).addNewMock(w, req)
 
 	res, body := geResultResponse(w, t)
 	t.Log(string(body))

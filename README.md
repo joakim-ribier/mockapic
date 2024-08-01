@@ -45,18 +45,19 @@ $ curl http://localhost:3333/
 
 Deploy it as a service or use it directly in your development for integration tests.
 
-| Option | Value                       | Default | Description |
-| ---    | ---                         | ---     | ---
-| --home | /home/{user}/data/gmocky-v2 | .       | Define the working directory or use `$GMOCKY_HOME` env
-| --port | 3333                        | 3333    | Define a specific port or use `$GMOCKY_PORT` env
+| Option    | Env                     | Value                       | Default          | Description |
+| ---       | ---                     | ---                         | ---              | ---
+| --home    | GMOCKY_HOME             | /home/{user}/app/gmocky-v2  | .                | Define the working directory
+| --port    | GMOCKY_PORT             | 3333                        | 3333             | Define a specific port
+| --req_max | GMOCKY_REQ_MAX_LIMIT    | 100                         | -1 (`unlimited`) | Define the max limit of the mocked requests
+| --ssl     | GMOCKY_SSL              | true                        | false            | Enable SSL/Tls HTTP server (need to provide certificate)
+| --cert    | GMOCKY_CERT             | /home/{user}/app/gmocky-v2  | 3333             | Define the certificate directory to contain (`gmocky.cert` and `gmocky.key`)
 
 1. Start the server
 
 ```bash
 $ cd cmd/httpserver
-$ ./httpserver --home /home/{user}/data/gmocky-v2 --port 3333
-#$ docker run -it --rm -p 3333:3333 -e GMOCKY_HOME=/home/{user}/data/gmocky-v2 -e GMOCKY_PORT=3333 gmocky-v2
-
+$ ./httpserver --home /home/{user}/app/gmocky-v2 --port 3333
        ______        __  ___ ____   ______ __ ____  __      __   _____  ______ ____  _    __ ______ ____
       / ____/       /  |/  // __ \ / ____// //_/\ \/ /    _/_/  / ___/ / ____// __ \| |  / // ____// __ \
      / / __ ______ / /|_/ // / / // /    / ,<    \  /   _/_/    \__ \ / __/  / /_/ /| | / // __/  / /_/ /
@@ -112,7 +113,7 @@ Run the HTTP server in SSL/Tls (`https`) mode with certificate.
 
 ```bash
 $ ./httpserver \
-  --home /home/{user}/data/gmocky-v2 \
+  --home /home/{user}/app/gmocky-v2 \
   --port 3333 \
   --ssl true \
   --cert {certificate-path-directory}
@@ -261,6 +262,18 @@ ok  	github.com/joakim-ribier/gmocky-v2/internal/server	2.181s	coverage: 91.0% o
 ```
 
 ## Docker
+
+### Pull and Run
+
+```bash
+# pull the last version
+$ docker pull joakimribier/gmocky-v2:latest
+
+# run the docker image
+$ docker run -it --rm -p 3333:3333 -e GMOCKY_PORT=3333 -e GMOCKY_SSL=true \
+  -v /home/{user}/app/gmocky-v2/data:/usr/src/app/gmocky-2/data \
+  -v /home/{user}/app/gmocky-v2/cert:/usr/src/app/gmocky-2/cert:ro joakimribier/gmocky-v2
+```
 
 ### Build
 

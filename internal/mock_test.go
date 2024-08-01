@@ -5,7 +5,9 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/joakim-ribier/go-utils/pkg/iosutil"
@@ -83,10 +85,44 @@ func TestList(t *testing.T) {
 	newUUID2, _ := createMockedRequest()
 
 	r, _ := NewMock(workingDirectory).List()
+
 	if !slicesutil.ExistT[MockedRequestLight](r, func(ml MockedRequestLight) bool {
 		return ml.UUID == newUUID1 || ml.UUID == newUUID2
 	}) {
 		t.Fatalf(`result: {%v} but expected {%v}`, r, []string{newUUID1, newUUID2})
+	}
+}
+
+// TestClean calls Mocker.Clean(int),
+// checking for a valid return value.
+func TestClean(t *testing.T) {
+	createMockedRequest()
+	createMockedRequest()
+
+	nbBefore, _ := NewMock(workingDirectory).List()
+	nbClean, _ := NewMock(workingDirectory).Clean(1)
+	nbAfter, _ := NewMock(workingDirectory).List()
+
+	if !(len(nbBefore) > 1 && nbClean > 0 && len(nbAfter) == 1) {
+		t.Fatalf(`result: {%v} but expected {%v}`, nbAfter, []string{})
+	}
+
+	// test if the max limit is < 0
+	r, err := NewMock(workingDirectory).Clean(-1)
+	if r != 0 || err != nil {
+		t.Fatalf(`result: {%v} but expected {%v}`, r, 0)
+	}
+
+	// test if the max limit is > to the total nb mocked request
+	r, err = NewMock(workingDirectory).Clean(100)
+	if r != 0 || err != nil {
+		t.Fatalf(`result: {%v} but expected {%v}`, r, 0)
+	}
+
+	// test if Mocker.List returns an error
+	r, err = NewMock("wrong-directory").Clean(100)
+	if !strings.Contains(err.Error(), "wrong-directory/: no such file or directory") {
+		t.Fatalf(`result: {%v} but expected {%v}`, r, err)
 	}
 }
 
@@ -192,11 +228,13 @@ func TestNewWithBadContentType(t *testing.T) {
 func createMockedRequest() (string, string) {
 	newUUID := uuid.NewString()
 	mockedRequest := fmt.Sprintf(`{
+	    "uuid": "%s",
     	"status": 200,
     	"contentType": "text/plain",
     	"charset": "UTF-8",
-    	"body": "%s"
-	}`, newUUID)
+    	"body": "%s",
+		"createdAt:": "%s"
+	}`, newUUID, newUUID, time.Now().Format("2006-01-02 15:04:05"))
 
 	err := iosutil.Write([]byte(mockedRequest), workingDirectory+"/"+newUUID+".json")
 	if err != nil {

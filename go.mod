@@ -5,7 +5,7 @@ go 1.22.5
 require (
 	github.com/google/uuid v1.6.0
 	github.com/jedib0t/go-pretty/v6 v6.5.9
-	github.com/joakim-ribier/go-utils v0.0.0-20240731193931-b7b805a5ff92
+	github.com/joakim-ribier/go-utils v0.0.0-20240801182449-4e195b0d0998
 )
 
 require (

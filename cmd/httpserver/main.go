@@ -14,18 +14,23 @@ import (
 
 func main() {
 	args := slicesutil.ToMap(os.Args[1:])
-	if arg, ok := args[string("--home")]; ok {
+	if arg, ok := args["--home"]; ok {
 		internal.GMOCKY_HOME = arg
 	}
-	if arg, ok := args[string("--port")]; ok {
+	if arg, ok := args["--req_max"]; ok {
+		internal.GMOCKY_REQ_MAX_LIMIT = stringsutil.Int(arg, -1)
+	} else {
+		internal.GMOCKY_REQ_MAX_LIMIT = stringsutil.Int(os.Getenv("GMOCKY_REQ_MAX_LIMIT"), -1)
+	}
+	if arg, ok := args["--port"]; ok {
 		internal.GMOCKY_PORT = arg
 	}
-	if arg, ok := args[string("--cert")]; ok {
+	if arg, ok := args["--cert"]; ok {
 		internal.GMOCKY_CERT_DIRECTORY = arg
 	}
-	if arg, ok := args[string("--ssl")]; ok {
-		internal.GMOCKY_SSL = arg
-		if internal.GMOCKY_SSL == "true" && internal.GMOCKY_CERT_DIRECTORY == "" {
+	if arg, ok := args["--ssl"]; ok {
+		internal.GMOCKY_SSL = stringsutil.Bool(arg)
+		if internal.GMOCKY_SSL && internal.GMOCKY_CERT_DIRECTORY == "" {
 			internal.GMOCKY_CERT_FILENAME = "example.crt"
 			internal.GMOCKY_PEM_FILENAME = "example.key"
 			internal.GMOCKY_CERT_DIRECTORY = "../../cert"
@@ -34,15 +39,14 @@ func main() {
 
 	httpServer := server.NewHTTPServer(
 		stringsutil.OrElse(internal.GMOCKY_PORT, "3333"),
-		genericsutil.When(
-			internal.GMOCKY_SSL, func(arg string) bool { return arg == "true" }, true, false),
+		internal.GMOCKY_SSL,
 		internal.GMOCKY_CERT_DIRECTORY,
+		internal.GMOCKY_HOME,
 		internal.NewMock(internal.GMOCKY_HOME))
 
 	fmt.Print(internal.LOGO)
 	fmt.Printf("Server running on port %s[:%s]....\n",
-		genericsutil.When(
-			internal.GMOCKY_SSL, func(arg string) bool { return arg == "true" }, "https", "http"),
+		genericsutil.When(internal.GMOCKY_SSL, func(arg bool) bool { return arg }, "https", "http"),
 		httpServer.Port)
 
 	if err := httpServer.Listen(); err != nil {
