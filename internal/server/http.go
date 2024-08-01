@@ -6,31 +6,35 @@ import (
 	"net/http"
 	"net/url"
 	"path"
+	"strconv"
 
 	"github.com/google/uuid"
 	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/joakim-ribier/gmocky-v2/internal"
 	"github.com/joakim-ribier/gmocky-v2/pkg"
+	"github.com/joakim-ribier/go-utils/pkg/iosutil"
 	"github.com/joakim-ribier/go-utils/pkg/jsonsutil"
 )
 
 // HTTPServer represents a http server struct
 type HTTPServer struct {
-	Port          string
-	SSLEnabled    bool
-	certDirectory string
-	mocker        internal.Mocker
+	Port             string
+	SSLEnabled       bool
+	certDirectory    string
+	workingDirectory string
+	mocker           internal.Mocker
 }
 
 // NewHTTPServer creates and initializes a {HTTPServer} struct
 func NewHTTPServer(
-	port string, ssl bool, certDirectory string, mocker internal.Mocker) *HTTPServer {
+	port string, ssl bool, certDirectory, workingDirectory string, mocker internal.Mocker) *HTTPServer {
 
 	return &HTTPServer{
-		Port:          port,
-		mocker:        mocker,
-		SSLEnabled:    ssl,
-		certDirectory: certDirectory,
+		Port:             port,
+		mocker:           mocker,
+		SSLEnabled:       ssl,
+		certDirectory:    certDirectory,
+		workingDirectory: workingDirectory,
 	}
 }
 
@@ -74,45 +78,94 @@ func (s HTTPServer) home(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(200)
 	w.Header().Set("Content-Type", "text/plain")
 
-	t := table.NewWriter()
-	t.SetTitle("List available APIs\n")
+	buildAPITable := func() string {
+		t := table.NewWriter()
+		t.SetTitle("List available APIs\n")
 
-	t.SetStyle(table.StyleDefault)
-	t.Style().Options.DrawBorder = false
-	t.Style().Options.SeparateColumns = true
-	t.Style().Options.SeparateFooter = true
-	t.Style().Options.SeparateHeader = false
-	t.Style().Options.SeparateRows = false
+		t.SetStyle(table.StyleDefault)
+		t.Style().Options.DrawBorder = false
+		t.Style().Options.SeparateColumns = true
+		t.Style().Options.SeparateFooter = true
+		t.Style().Options.SeparateHeader = false
+		t.Style().Options.SeparateRows = false
 
-	t.AppendHeader(table.Row{"Method\n", "Endpoint\n", "Description\n"})
+		t.AppendHeader(table.Row{"Method\n", "Endpoint\n", "Description\n"})
 
-	t.SetColumnConfigs([]table.ColumnConfig{
-		{Number: 1, AutoMerge: true},
-		{Number: 2, AutoMerge: true},
-		{Number: 3, AutoMerge: true},
-	})
+		t.SetColumnConfigs([]table.ColumnConfig{
+			{Number: 1, AutoMerge: true},
+			{Number: 2, AutoMerge: true},
+			{Number: 3, AutoMerge: true},
+		})
 
-	t.AppendSeparator()
-	t.AppendRows([]table.Row{
-		{"GET", "/", "Get info"},
-	})
-	t.AppendSeparator()
-	t.AppendRows([]table.Row{
-		{"GET", "/static/content-types", "Get allowed content types"},
-		{"GET", "/static/charsets", "Get allowed charsets"},
-		{"GET", "/static/status-codes", "Get allowed status codes"},
-	})
-	t.AppendSeparator()
-	t.AppendRows([]table.Row{
-		{"GET", "/v1/{uuid}", "Get a mocked request"},
-		{"GET", "/v1/list", "Get the list of all mocked requests"},
-		{"POST", "/v1/add", "Create a new mocked request"},
-	})
+		t.AppendSeparator()
+		t.AppendRows([]table.Row{
+			{"GET", "/", "Get info"},
+		})
+		t.AppendSeparator()
+		t.AppendRows([]table.Row{
+			{"GET", "/static/content-types", "Get allowed content types"},
+			{"GET", "/static/charsets", "Get allowed charsets"},
+			{"GET", "/static/status-codes", "Get allowed status codes"},
+		})
+		t.AppendSeparator()
+		t.AppendRows([]table.Row{
+			{"GET", "/v1/{uuid}", "Get a mocked request"},
+			{"GET", "/v1/list", "Get the list of all mocked requests"},
+			{"POST", "/v1/add", "Create a new mocked request"},
+		})
+
+		return t.Render()
+	}
+
+	buildStatsTable := func() string {
+		maxLimit := "unlimited"
+		if internal.GMOCKY_REQ_MAX_LIMIT > 0 {
+			maxLimit = strconv.Itoa(internal.GMOCKY_REQ_MAX_LIMIT)
+		}
+
+		nb := "N/A"
+		lastUUID := "N/A"
+		lastCreatedAt := "N/A"
+		mockedRequests, _ := s.mocker.List()
+		if mockedRequests != nil {
+			nb = strconv.Itoa(len(mockedRequests))
+			if len(mockedRequests) > 0 {
+				lastUUID = mockedRequests[0].UUID
+				lastCreatedAt = mockedRequests[0].CreatedAt
+			}
+		}
+
+		t := table.NewWriter()
+
+		t.SetStyle(table.StyleDefault)
+		t.Style().Options.DrawBorder = false
+		t.Style().Options.SeparateColumns = true
+		t.Style().Options.SeparateFooter = true
+		t.Style().Options.SeparateHeader = false
+		t.Style().Options.SeparateRows = false
+
+		t.AppendHeader(table.Row{"Name\n", "Value\n"})
+
+		t.AppendSeparator()
+		t.AppendRows([]table.Row{
+			{"Requests max number authorized", maxLimit},
+		})
+		t.AppendSeparator()
+		t.AppendRows([]table.Row{
+			{"Remote addr total number", len(s.getRemoteAddr())},
+			{"Requests total number\n", nb},
+			{"Last UUID", lastUUID},
+			{"Last createdAt", lastCreatedAt},
+		})
+
+		return t.Render()
+	}
 
 	w.Write([]byte(fmt.Sprintf(
-		"%s\n\n%s",
+		"%s\n\n%s\n\n\n%s",
 		internal.LOGO,
-		t.Render())))
+		buildStatsTable(),
+		buildAPITable())))
 }
 
 func (s HTTPServer) getContentTypes(w http.ResponseWriter, r *http.Request) {
@@ -177,6 +230,22 @@ func (s HTTPServer) findMock(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s HTTPServer) addNewMock(w http.ResponseWriter, r *http.Request) {
+
+	countRemoteAddr := func() {
+		remoteAddr := s.getRemoteAddr()
+
+		if count, is := remoteAddr[r.RemoteAddr]; is {
+			remoteAddr[r.RemoteAddr] = count + 1
+		} else {
+			remoteAddr[r.RemoteAddr] = 1
+		}
+
+		data, err := jsonsutil.Marshal(remoteAddr)
+		if err == nil {
+			iosutil.Write(data, s.workingDirectory+"/remote-addr.json")
+		}
+	}
+
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		writeError(w, err)
@@ -189,9 +258,26 @@ func (s HTTPServer) addNewMock(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if internal.GMOCKY_REQ_MAX_LIMIT > 0 {
+		s.mocker.Clean(internal.GMOCKY_REQ_MAX_LIMIT)
+	}
+
+	countRemoteAddr()
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(200)
 	w.Write([]byte(fmt.Sprintf(`{"uuid": "%s"}`, *newUUID)))
+}
+
+func (s HTTPServer) getRemoteAddr() map[string]int {
+	loaded, err := iosutil.Load(s.workingDirectory + "/remote-addr.json")
+	if err == nil {
+		data, err := jsonsutil.Unmarshal[map[string]int](loaded)
+		if err == nil {
+			return data
+		}
+	}
+	return map[string]int{}
 }
 
 func (s HTTPServer) list(w http.ResponseWriter, r *http.Request) {

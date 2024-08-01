@@ -22,6 +22,8 @@ github.com/joakim-ribier/go-utils v0.0.0-20240731172845-980a8f028c67 h1:CzDAQmvM
 github.com/joakim-ribier/go-utils v0.0.0-20240731172845-980a8f028c67/go.mod h1:ziQiPctIQVMcYF7yxo3MC7ei/kBc+W5PY82gc7pstmU=
 github.com/joakim-ribier/go-utils v0.0.0-20240731193931-b7b805a5ff92 h1:mHDpdsdFpnSvOvDygC1F2uRgyXObUywUlvkIhWwTeLc=
 github.com/joakim-ribier/go-utils v0.0.0-20240731193931-b7b805a5ff92/go.mod h1:ziQiPctIQVMcYF7yxo3MC7ei/kBc+W5PY82gc7pstmU=
+github.com/joakim-ribier/go-utils v0.0.0-20240801182449-4e195b0d0998 h1:MsNXcoFt3vbo8s/lHWUh/5rhrUE2p9ZwrN4sbwlI4+s=
+github.com/joakim-ribier/go-utils v0.0.0-20240801182449-4e195b0d0998/go.mod h1:ziQiPctIQVMcYF7yxo3MC7ei/kBc+W5PY82gc7pstmU=
 github.com/mattn/go-runewidth v0.0.16 h1:E5ScNMtiwvlvB5paMFdw9p4kSQzbXFikJ5SQO6TULQc=
 github.com/mattn/go-runewidth v0.0.16/go.mod h1:Jdepj2loyihRzMpdS35Xk/zdY8IAYHsh153qUoGf23w=
 github.com/opencontainers/go-digest v1.0.0 h1:apOUWs51W5PlhuyGyz9FCeeBIOUDA/6nW8Oi/yOhh5U=
