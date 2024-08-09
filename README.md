@@ -73,6 +73,7 @@ Server running on port 3333....
 $ curl --location 'http://localhost:3333/v1/new' \
 --header 'Content-Type: application/json' \
 --data '{
+    "name": "Hello World - 200"
     "status": 200,
     "contentType": "text/plain",
     "charset": "UTF-8",
@@ -240,14 +241,18 @@ Hello World
 $ curl -X GET --location '~/v1/list' | jq
 [
   {
+    "Name": "200 - Ok",
     "UUID": "03e122b3-42d7-41bd-92ca-35b93ea38c4e",
+    "CreatedAt": "1970-01-01 00:00:01",
     "Status": 200,
     "ContentType": "application/json"
   },
   {
+    "Name": "409 - Conflict",
     "UUID": "051d6a25-33ea-49fe-86a7-07648489e750",
+    "CreatedAt": "1970-01-01 00:00:01",
     "Status": 409,
-    "ContentType": "text/plain"
+    "ContentType": "application/json"
   },
   ...
 ```
@@ -270,9 +275,9 @@ ok  	github.com/joakim-ribier/gmocky-v2/internal/server	2.181s	coverage: 91.0% o
 $ docker pull joakimribier/gmocky-v2:latest
 
 # run the docker image
-$ docker run -it --rm -p 3333:3333 -e GMOCKY_PORT=3333 -e GMOCKY_SSL=true \
-  -v /home/{user}/app/gmocky-v2:/usr/src/app/gmocky-2/data \
-  -v /home/{user}/app/gmocky-v2:/usr/src/app/gmocky-2/cert:ro joakimribier/gmocky-v2
+$ docker run -it --restart unless-stopped -p 3333:3333 -e GMOCKY_PORT=3333 -e GMOCKY_REQ_MAX_LIMIT=100 -e GMOCKY_SSL=true \
+  -v /home/{user}/app/gmocky-v2:/usr/src/app/gmocky-v2/data \
+  -v /home/{user}/app/gmocky-v2:/usr/src/app/gmocky-v2/cert:ro joakimribier/gmocky-v2
 ```
 
 ### Build

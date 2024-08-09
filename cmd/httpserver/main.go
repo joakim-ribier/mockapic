@@ -8,6 +8,7 @@ import (
 	"github.com/joakim-ribier/gmocky-v2/internal"
 	"github.com/joakim-ribier/gmocky-v2/internal/server"
 	"github.com/joakim-ribier/go-utils/pkg/genericsutil"
+	"github.com/joakim-ribier/go-utils/pkg/logsutil"
 	"github.com/joakim-ribier/go-utils/pkg/slicesutil"
 	"github.com/joakim-ribier/go-utils/pkg/stringsutil"
 )
@@ -16,6 +17,9 @@ func main() {
 	args := slicesutil.ToMap(os.Args[1:])
 	if arg, ok := args["--home"]; ok {
 		internal.GMOCKY_HOME = arg
+		if _, err := os.Open(internal.GMOCKY_HOME); err != nil {
+			log.Fatalf("%v", err)
+		}
 	}
 	if arg, ok := args["--req_max"]; ok {
 		internal.GMOCKY_REQ_MAX_LIMIT = stringsutil.Int(arg, -1)
@@ -35,12 +39,25 @@ func main() {
 		}
 	}
 
+	logger, err := logsutil.NewLogger(internal.GMOCKY_HOME+"/application.log", "gmocky-v2")
+	if err != nil {
+		log.Fatalf("%v", err)
+	}
+
+	logger.Info(internal.LOGO,
+		"home", internal.GMOCKY_HOME,
+		"port", internal.GMOCKY_PORT,
+		"ssl", internal.GMOCKY_SSL,
+		"req_max", internal.GMOCKY_REQ_MAX_LIMIT,
+	)
+
 	httpServer := server.NewHTTPServer(
 		stringsutil.OrElse(internal.GMOCKY_PORT, "3333"),
 		internal.GMOCKY_SSL,
 		internal.GMOCKY_CERT_DIRECTORY,
 		internal.GMOCKY_HOME,
-		internal.NewMock(internal.GMOCKY_HOME+"/requests"))
+		internal.NewMock(internal.GMOCKY_HOME+"/requests", *logger),
+		*logger)
 
 	fmt.Print(internal.LOGO)
 	fmt.Printf("Server running on port %s[:%s]....\n",

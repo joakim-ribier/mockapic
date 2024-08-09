@@ -12,6 +12,7 @@ import (
 	"github.com/joakim-ribier/go-utils/pkg/genericsutil"
 	"github.com/joakim-ribier/go-utils/pkg/iosutil"
 	"github.com/joakim-ribier/go-utils/pkg/jsonsutil"
+	"github.com/joakim-ribier/go-utils/pkg/logsutil"
 	"github.com/joakim-ribier/go-utils/pkg/slicesutil"
 )
 
@@ -53,25 +54,30 @@ type Mocker interface {
 
 type Mock struct {
 	workingDirectory string
+	logger           logsutil.Logger
 }
 
-func NewMock(workingDirectory string) Mock {
-	return Mock{workingDirectory: workingDirectory}
+func NewMock(workingDirectory string, logger logsutil.Logger) Mock {
+	return Mock{
+		workingDirectory: workingDirectory,
+		logger:           logger.Namespace("mock")}
 }
 
 // Get finds the mocked request {mockId} on the storage
 func (m Mock) Get(mockId string) (*MockedRequest, error) {
-	return get[MockedRequest](m.workingDirectory, mockId)
+	return get[MockedRequest](m.workingDirectory, mockId, m.logger)
 }
 
-func get[T any](workingDirectory, mockId string) (*T, error) {
+func get[T any](workingDirectory, mockId string, logger logsutil.Logger) (*T, error) {
 	bytes, err := iosutil.Load(workingDirectory + "/" + mockId + ".json")
 	if err != nil {
+		logger.Error(err, "error to load data", "mockId", mockId, "workingDirectory", workingDirectory)
 		return nil, err
 	}
 
 	mock, err := jsonsutil.Unmarshal[T](bytes)
 	if err != nil {
+		logger.Error(err, "error to unmarshal data", "mockId", mockId, "workingDirectory", workingDirectory, "data", bytes)
 		return nil, err
 	}
 	return &mock, nil
@@ -81,6 +87,7 @@ func get[T any](workingDirectory, mockId string) (*T, error) {
 func (m Mock) List() ([]MockedRequestLight, error) {
 	entries, err := os.ReadDir(m.workingDirectory + "/")
 	if err != nil {
+		m.logger.Error(err, "error to read directory", "workingDirectory", m.workingDirectory)
 		return nil, err
 	}
 
@@ -90,7 +97,7 @@ func (m Mock) List() ([]MockedRequestLight, error) {
 			if len(e.Name()) > 5 {
 				mockId = e.Name()[:len(e.Name())-5]
 			}
-			return get[MockedRequestLight](m.workingDirectory, mockId)
+			return get[MockedRequestLight](m.workingDirectory, mockId, m.logger)
 		}), func(mrl1, mrl2 MockedRequestLight) (string, string) { return mrl2.CreatedAt, mrl1.CreatedAt })
 
 	return genericsutil.OrElse(
@@ -102,6 +109,7 @@ func (m Mock) New(body []byte) (*string, error) {
 	var mock *MockedRequest
 	data, err := jsonsutil.Unmarshal[MockedRequest](body)
 	if err != nil {
+		m.logger.Error(err, "error to unmarshal data", "data", body)
 		return nil, err
 	}
 	mock = &data
@@ -123,11 +131,13 @@ func (m Mock) New(body []byte) (*string, error) {
 
 	body, err = jsonsutil.Marshal(mock)
 	if err != nil {
+		m.logger.Error(err, "error to nmarshal data", "mock", mock)
 		return nil, err
 	}
 
 	err = iosutil.Write(body, m.workingDirectory+"/"+mock.UUID+".json")
 	if err != nil {
+		m.logger.Error(err, "error to write data", "mock", mock, "workingDirectory", m.workingDirectory)
 		return nil, err
 	}
 
@@ -142,6 +152,7 @@ func (m Mock) Clean(maxLimit int) (int, error) {
 	}
 	mockedRequests, err := m.List()
 	if err != nil {
+		m.logger.Error(err, "error to list requests", "workingDirectory", m.workingDirectory)
 		return nb, err
 	}
 	nbToDelete := len(mockedRequests) - maxLimit

@@ -11,10 +11,12 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/joakim-ribier/go-utils/pkg/iosutil"
+	"github.com/joakim-ribier/go-utils/pkg/logsutil"
 	"github.com/joakim-ribier/go-utils/pkg/slicesutil"
 )
 
 var workingDirectory string
+var logger *logsutil.Logger
 
 func TestMain(m *testing.M) {
 	dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
@@ -22,6 +24,10 @@ func TestMain(m *testing.M) {
 		log.Fatal(err)
 	}
 	workingDirectory = dir
+	logger, err = logsutil.NewLogger(workingDirectory+"/application-test.log", "gmocky-v2-test")
+	if err != nil {
+		panic(err)
+	}
 
 	exitVal := m.Run()
 
@@ -31,7 +37,7 @@ func TestMain(m *testing.M) {
 // TestGetWithBadFilename calls Mocker.Get,
 // checking for a valid return value.
 func TestGetWithBadFilename(t *testing.T) {
-	r, err := NewMock(workingDirectory).Get("file-does-not-exist.json")
+	r, err := NewMock(workingDirectory, *logger).Get("file-does-not-exist.json")
 	if err == nil {
 		t.Fatalf(`result: {%v} but expected error`, r)
 	}
@@ -51,7 +57,7 @@ func TestGetWithBadContent(t *testing.T) {
 		log.Fatal(err)
 	}
 
-	r, err := NewMock(workingDirectory).Get(newUUID)
+	r, err := NewMock(workingDirectory, *logger).Get(newUUID)
 	if err == nil {
 		t.Fatalf(`result: {%v} but expected error`, r)
 	}
@@ -63,7 +69,7 @@ func TestGet(t *testing.T) {
 	newUUID, mockedRequest := createMockedRequest()
 	defer os.Remove(workingDirectory + "/" + newUUID + ".json")
 
-	r, _ := NewMock(workingDirectory).Get(newUUID)
+	r, _ := NewMock(workingDirectory, *logger).Get(newUUID)
 	if r.Body != newUUID {
 		t.Fatalf(`result: {%v} but expected {%s}`, r, mockedRequest)
 	}
@@ -72,7 +78,7 @@ func TestGet(t *testing.T) {
 // TestListWithBadWorkingDir calls Mocker.List,
 // checking for a valid return value.
 func TestListWithBadWorkingDir(t *testing.T) {
-	r, err := NewMock("wrong-directory").List()
+	r, err := NewMock("wrong-directory", *logger).List()
 	if err == nil {
 		t.Fatalf(`result: {%v} but expected error`, r)
 	}
@@ -84,7 +90,7 @@ func TestList(t *testing.T) {
 	newUUID1, _ := createMockedRequest()
 	newUUID2, _ := createMockedRequest()
 
-	r, _ := NewMock(workingDirectory).List()
+	r, _ := NewMock(workingDirectory, *logger).List()
 
 	if !slicesutil.ExistT[MockedRequestLight](r, func(ml MockedRequestLight) bool {
 		return ml.UUID == newUUID1 || ml.UUID == newUUID2
@@ -99,28 +105,28 @@ func TestClean(t *testing.T) {
 	createMockedRequest()
 	createMockedRequest()
 
-	nbBefore, _ := NewMock(workingDirectory).List()
-	nbClean, _ := NewMock(workingDirectory).Clean(1)
-	nbAfter, _ := NewMock(workingDirectory).List()
+	nbBefore, _ := NewMock(workingDirectory, *logger).List()
+	nbClean, _ := NewMock(workingDirectory, *logger).Clean(1)
+	nbAfter, _ := NewMock(workingDirectory, *logger).List()
 
 	if !(len(nbBefore) > 1 && nbClean > 0 && len(nbAfter) == 1) {
 		t.Fatalf(`result: {%v} but expected {%v}`, nbAfter, []string{})
 	}
 
 	// test if the max limit is < 0
-	r, err := NewMock(workingDirectory).Clean(-1)
+	r, err := NewMock(workingDirectory, *logger).Clean(-1)
 	if r != 0 || err != nil {
 		t.Fatalf(`result: {%v} but expected {%v}`, r, 0)
 	}
 
 	// test if the max limit is > to the total nb mocked request
-	r, err = NewMock(workingDirectory).Clean(100)
+	r, err = NewMock(workingDirectory, *logger).Clean(100)
 	if r != 0 || err != nil {
 		t.Fatalf(`result: {%v} but expected {%v}`, r, 0)
 	}
 
 	// test if Mocker.List returns an error
-	r, err = NewMock("wrong-directory").Clean(100)
+	r, err = NewMock("wrong-directory", *logger).Clean(100)
 	if !strings.Contains(err.Error(), "wrong-directory/: no such file or directory") {
 		t.Fatalf(`result: {%v} but expected {%v}`, r, err)
 	}
@@ -131,7 +137,7 @@ func TestClean(t *testing.T) {
 func TestNewWithBadBody(t *testing.T) {
 	body := `{wrong body}`
 
-	newUUID, err := NewMock(workingDirectory).New([]byte(body))
+	newUUID, err := NewMock(workingDirectory, *logger).New([]byte(body))
 	if err == nil {
 		t.Fatalf(`result: {%v} but expected error`, newUUID)
 	}
@@ -140,7 +146,7 @@ func TestNewWithBadBody(t *testing.T) {
 // TestNewWithBadWorkingDir calls Mocker.New,
 // checking for a valid return value.
 func TestNewWithBadWorkingDir(t *testing.T) {
-	r, err := NewMock("wrong-directory").New([]byte(`{
+	r, err := NewMock("wrong-directory", *logger).New([]byte(`{
     	"status": 200,
     	"contentType": "text/plain",
     	"charset": "UTF-8",
@@ -162,8 +168,8 @@ func TestNew(t *testing.T) {
 		"headers": {"x-language": "golang"}
 	}`
 
-	newUUID, _ := NewMock(workingDirectory).New([]byte(body))
-	mock, _ := NewMock(workingDirectory).Get(*newUUID)
+	newUUID, _ := NewMock(workingDirectory, *logger).New([]byte(body))
+	mock, _ := NewMock(workingDirectory, *logger).Get(*newUUID)
 
 	expected := &MockedRequest{
 		Status:      200,
@@ -187,7 +193,7 @@ func TestNewWithBadStatus(t *testing.T) {
     	"body": "Hello World"
 	}`
 
-	_, err := NewMock(workingDirectory).New([]byte(body))
+	_, err := NewMock(workingDirectory, *logger).New([]byte(body))
 	if err.Error() != "status {-1} does not exist" {
 		t.Fatalf(`result: {%v} but expected {%v}`, err.Error(), "status does not exist")
 	}
@@ -203,7 +209,7 @@ func TestNewWithBadCharset(t *testing.T) {
     	"body": "Hello World"
 	}`
 
-	_, err := NewMock(workingDirectory).New([]byte(body))
+	_, err := NewMock(workingDirectory, *logger).New([]byte(body))
 	if err.Error() != "charset {wrong-charset} does not exist" {
 		t.Fatalf(`result: {%v} but expected {%v}`, err.Error(), "charset does not exist")
 	}
@@ -219,7 +225,7 @@ func TestNewWithBadContentType(t *testing.T) {
     	"body": "Hello World"
 	}`
 
-	_, err := NewMock(workingDirectory).New([]byte(body))
+	_, err := NewMock(workingDirectory, *logger).New([]byte(body))
 	if err.Error() != "content type {wrong-content-type} does not exist" {
 		t.Fatalf(`result: {%v} but expected {%v}`, err.Error(), "content type does not exist")
 	}

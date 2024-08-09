@@ -17,6 +17,7 @@ import (
 	"github.com/joakim-ribier/gmocky-v2/pkg"
 	"github.com/joakim-ribier/go-utils/pkg/httpsutil"
 	"github.com/joakim-ribier/go-utils/pkg/jsonsutil"
+	"github.com/joakim-ribier/go-utils/pkg/logsutil"
 )
 
 type MockerTest struct {
@@ -55,6 +56,7 @@ func (m *MockerTest) Clean(maxLimit int) (int, error) {
 }
 
 var workingDirectory string
+var logger *logsutil.Logger
 
 func TestMain(m *testing.M) {
 	dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
@@ -62,6 +64,10 @@ func TestMain(m *testing.M) {
 		log.Fatal(err)
 	}
 	workingDirectory = dir
+	logger, err = logsutil.NewLogger(workingDirectory+"/application-test.log", "gmocky-v2-test")
+	if err != nil {
+		panic(err)
+	}
 
 	exitVal := m.Run()
 
@@ -71,7 +77,7 @@ func TestMain(m *testing.M) {
 // TestListen calls HTTPServer.Listen(),
 // checking for a valid return value.
 func TestListen(t *testing.T) {
-	httpServer := NewHTTPServer("3334", false, "", workingDirectory, &MockerTest{})
+	httpServer := NewHTTPServer("3334", false, "", workingDirectory, &MockerTest{}, *logger)
 
 	go func() {
 		err := httpServer.Listen()
@@ -102,7 +108,7 @@ func TestListenSSL(t *testing.T) {
 	internal.GMOCKY_CERT_FILENAME = "example.crt"
 	internal.GMOCKY_PEM_FILENAME = "example.key"
 
-	httpServer := NewHTTPServer("3333", true, "../../cert", workingDirectory, &MockerTest{})
+	httpServer := NewHTTPServer("3333", true, "../../cert", workingDirectory, &MockerTest{}, *logger)
 
 	go func() {
 		err := httpServer.Listen()
@@ -137,7 +143,7 @@ func TestRootEndpoint(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	w := httptest.NewRecorder()
 
-	NewHTTPServer("{port}", false, "", workingDirectory, &MockerTest{}).home(w, req)
+	NewHTTPServer("{port}", false, "", workingDirectory, &MockerTest{}, *logger).home(w, req)
 
 	_, body := geResultResponse(w, t)
 	if !strings.Contains(string(body), internal.LOGO) {
@@ -155,7 +161,7 @@ func TestGetContentTypesEndpoint(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/static/content-types", nil)
 	w := httptest.NewRecorder()
 
-	NewHTTPServer("{port}", false, "", workingDirectory, &MockerTest{}).getContentTypes(w, req)
+	NewHTTPServer("{port}", false, "", workingDirectory, &MockerTest{}, *logger).getContentTypes(w, req)
 
 	_, body := geResultResponse(w, t)
 	if !strings.Contains(string(body), "application/json") {
@@ -173,7 +179,7 @@ func TestGetCharsetsEndpoint(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/static/charsets", nil)
 	w := httptest.NewRecorder()
 
-	NewHTTPServer("{port}", false, "", workingDirectory, &MockerTest{}).getCharsets(w, req)
+	NewHTTPServer("{port}", false, "", workingDirectory, &MockerTest{}, *logger).getCharsets(w, req)
 
 	_, body := geResultResponse(w, t)
 	if !strings.Contains(string(body), "ISO-8859-1") {
@@ -191,7 +197,7 @@ func TestGetStatusCodesEndpoint(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/static/content-types", nil)
 	w := httptest.NewRecorder()
 
-	NewHTTPServer("{port}", false, "", workingDirectory, &MockerTest{}).getStatusCodes(w, req)
+	NewHTTPServer("{port}", false, "", workingDirectory, &MockerTest{}, *logger).getStatusCodes(w, req)
 
 	_, body := geResultResponse(w, t)
 	if !strings.Contains(string(body), "Method Not Allowed") {
@@ -209,7 +215,7 @@ func TestFindMockResponseEndpointWithInvalidUUID(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/v1/wrong-uuid", nil)
 	w := httptest.NewRecorder()
 
-	NewHTTPServer("{port}", false, "", workingDirectory, &MockerTest{}).findMock(w, req)
+	NewHTTPServer("{port}", false, "", workingDirectory, &MockerTest{}, *logger).findMock(w, req)
 
 	res, body := geResultResponse(w, t)
 	if res.Status != "409 Conflict" || string(body) != `{"message": "invalid UUID length: 10"}` {
@@ -223,7 +229,7 @@ func TestFindMockResponseEndpointUUIDNotFound(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/v1/"+uuid.NewString(), nil)
 	w := httptest.NewRecorder()
 
-	NewHTTPServer("{port}", false, "", workingDirectory, &MockerTest{}).findMock(w, req)
+	NewHTTPServer("{port}", false, "", workingDirectory, &MockerTest{}, *logger).findMock(w, req)
 
 	res, _ := geResultResponse(w, t)
 	if res.Status != "404 Not Found" {
@@ -245,7 +251,7 @@ func TestFindMockResponseEndpoint(t *testing.T) {
 			Body:        "Hello World",
 		},
 	}
-	NewHTTPServer("{port}", false, "", workingDirectory, mocker).findMock(w, req)
+	NewHTTPServer("{port}", false, "", workingDirectory, mocker, *logger).findMock(w, req)
 
 	res, _ := geResultResponse(w, t)
 	if res.Status != "200 OK" {
@@ -263,7 +269,7 @@ func TestListEndpointWithError(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/v1/list", nil)
 	w := httptest.NewRecorder()
 
-	NewHTTPServer("{port}", false, "", workingDirectory, &MockerTest{}).list(w, req)
+	NewHTTPServer("{port}", false, "", workingDirectory, &MockerTest{}, *logger).list(w, req)
 
 	res, body := geResultResponse(w, t)
 	if res.Status != "409 Conflict" || string(body) != `{"message": "error to list mocked responses"}` {
@@ -289,7 +295,7 @@ func TestListEndpoint(t *testing.T) {
 			},
 		},
 	}
-	NewHTTPServer("{port}", false, "", workingDirectory, mocker).list(w, req)
+	NewHTTPServer("{port}", false, "", workingDirectory, mocker, *logger).list(w, req)
 
 	res, body := geResultResponse(w, t)
 	s, err := jsonsutil.Unmarshal[[]internal.MockedRequestLight](body)
@@ -320,7 +326,7 @@ func TestAddNewEndpoint(t *testing.T) {
 	w := httptest.NewRecorder()
 
 	mocker := &MockerTest{mockResponse: nil, clean: false}
-	NewHTTPServer("{port}", false, "", workingDirectory, mocker).addNewMock(w, req)
+	NewHTTPServer("{port}", false, "", workingDirectory, mocker, *logger).addNewMock(w, req)
 
 	res, body := geResultResponse(w, t)
 
@@ -345,7 +351,7 @@ func TestAddNewEndpointWithBadBody(t *testing.T) {
 	w := httptest.NewRecorder()
 
 	mocker := &MockerTest{mockResponse: nil}
-	NewHTTPServer("{port}", false, "", workingDirectory, mocker).addNewMock(w, req)
+	NewHTTPServer("{port}", false, "", workingDirectory, mocker, *logger).addNewMock(w, req)
 
 	res, body := geResultResponse(w, t)
 	t.Log(string(body))
@@ -353,6 +359,25 @@ func TestAddNewEndpointWithBadBody(t *testing.T) {
 	if res.Status != "409 Conflict" ||
 		string(body) != `{"message": "error to add new mocked response"}` {
 		t.Fatalf(`result: {%v} but expected {%v}`, res, "409")
+	}
+}
+
+// TestFindRemoteAddr calls HTTPServer.findRemoteAddr(string),
+// checking for a valid return value.
+func TestFindRemoteAddr(t *testing.T) {
+	httpServer := NewHTTPServer("{port}", false, "", workingDirectory, &MockerTest{}, *logger)
+
+	if r := httpServer.findRemoteAddr("127.0.0.1:3333"); r != "127.0.0.1" {
+		t.Fatalf(`result: {%v} but expected {%v}`, r, "127.0.0.1")
+	}
+	if r := httpServer.findRemoteAddr("[::1]:3333"); r != "[::1]" {
+		t.Fatalf(`result: {%v} but expected {%v}`, r, "[::1]")
+	}
+	if r := httpServer.findRemoteAddr(""); r != "[::1]" {
+		t.Fatalf(`result: {%v} but expected {%v}`, r, "[::1]")
+	}
+	if r := httpServer.findRemoteAddr("127.0.0.1"); r != "127.0.0.1" {
+		t.Fatalf(`result: {%v} but expected {%v}`, r, "127.0.0.1")
 	}
 }
 

@@ -14,6 +14,8 @@ import (
 	"github.com/joakim-ribier/gmocky-v2/pkg"
 	"github.com/joakim-ribier/go-utils/pkg/iosutil"
 	"github.com/joakim-ribier/go-utils/pkg/jsonsutil"
+	"github.com/joakim-ribier/go-utils/pkg/logsutil"
+	"github.com/joakim-ribier/go-utils/pkg/stringsutil"
 )
 
 // HTTPServer represents a http server struct
@@ -23,11 +25,13 @@ type HTTPServer struct {
 	certDirectory    string
 	workingDirectory string
 	mocker           internal.Mocker
+
+	logger logsutil.Logger
 }
 
 // NewHTTPServer creates and initializes a {HTTPServer} struct
 func NewHTTPServer(
-	port string, ssl bool, certDirectory, workingDirectory string, mocker internal.Mocker) *HTTPServer {
+	port string, ssl bool, certDirectory, workingDirectory string, mocker internal.Mocker, logger logsutil.Logger) *HTTPServer {
 
 	return &HTTPServer{
 		Port:             port,
@@ -35,6 +39,7 @@ func NewHTTPServer(
 		SSLEnabled:       ssl,
 		certDirectory:    certDirectory,
 		workingDirectory: workingDirectory,
+		logger:           logger.Namespace("server"),
 	}
 }
 
@@ -44,6 +49,7 @@ func (s HTTPServer) Listen() error {
 
 	handleFunc := func(method, pattern string, handle func(w http.ResponseWriter, r *http.Request)) {
 		server.HandleFunc(pattern, func(w http.ResponseWriter, r *http.Request) {
+			s.logger.Info("request", "uri", r.RequestURI, "method", r.Method)
 			if r.Method != method {
 				w.WriteHeader(404)
 				return
@@ -171,6 +177,7 @@ func (s HTTPServer) home(w http.ResponseWriter, r *http.Request) {
 func (s HTTPServer) getContentTypes(w http.ResponseWriter, r *http.Request) {
 	data, err := jsonsutil.Marshal(pkg.CONTENT_TYPES)
 	if err != nil {
+		s.logger.Error(err, "error to get content types", "uri", r.RequestURI)
 		writeError(w, err)
 		return
 	}
@@ -183,6 +190,7 @@ func (s HTTPServer) getContentTypes(w http.ResponseWriter, r *http.Request) {
 func (s HTTPServer) getCharsets(w http.ResponseWriter, r *http.Request) {
 	data, err := jsonsutil.Marshal(pkg.CHARSET)
 	if err != nil {
+		s.logger.Error(err, "error to get charsets", "uri", r.RequestURI)
 		writeError(w, err)
 		return
 	}
@@ -195,6 +203,7 @@ func (s HTTPServer) getCharsets(w http.ResponseWriter, r *http.Request) {
 func (s HTTPServer) getStatusCodes(w http.ResponseWriter, r *http.Request) {
 	data, err := jsonsutil.Marshal(pkg.HTTP_CODES)
 	if err != nil {
+		s.logger.Error(err, "error to get status HTTP codes", "uri", r.RequestURI)
 		writeError(w, err)
 		return
 	}
@@ -207,12 +216,14 @@ func (s HTTPServer) getStatusCodes(w http.ResponseWriter, r *http.Request) {
 func (s HTTPServer) findMock(w http.ResponseWriter, r *http.Request) {
 	url, err := url.Parse(r.RequestURI)
 	if err != nil {
+		s.logger.Error(err, "error to parse URI", "uri", r.RequestURI)
 		writeError(w, err)
 		return
 	}
 
 	mockId := path.Base(url.Path)
 	if err := uuid.Validate(mockId); err != nil {
+		s.logger.Error(err, "error to parse UUID", "uri", r.RequestURI)
 		writeError(w, err)
 		return
 
@@ -220,7 +231,7 @@ func (s HTTPServer) findMock(w http.ResponseWriter, r *http.Request) {
 
 	mock, err := s.mocker.Get(mockId)
 	if err != nil {
-		fmt.Printf("%v\n", err)
+		s.logger.Error(err, "error to get mock", "uri", r.RequestURI, "uuid", mockId)
 		w.WriteHeader(404)
 		return
 	}
@@ -232,15 +243,16 @@ func (s HTTPServer) findMock(w http.ResponseWriter, r *http.Request) {
 func (s HTTPServer) addNewMock(w http.ResponseWriter, r *http.Request) {
 
 	countRemoteAddr := func() {
-		remoteAddr := s.getRemoteAddr()
+		remoteAddrHistory := s.getRemoteAddr()
 
-		if count, is := remoteAddr[r.RemoteAddr]; is {
-			remoteAddr[r.RemoteAddr] = count + 1
+		remoteAddr := s.findRemoteAddr(r.RemoteAddr)
+		if count, is := remoteAddrHistory[remoteAddr]; is {
+			remoteAddrHistory[remoteAddr] = count + 1
 		} else {
-			remoteAddr[r.RemoteAddr] = 1
+			remoteAddrHistory[remoteAddr] = 1
 		}
 
-		data, err := jsonsutil.Marshal(remoteAddr)
+		data, err := jsonsutil.Marshal(remoteAddrHistory)
 		if err == nil {
 			iosutil.Write(data, s.workingDirectory+"/remote-addr.json")
 		}
@@ -248,12 +260,14 @@ func (s HTTPServer) addNewMock(w http.ResponseWriter, r *http.Request) {
 
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
+		s.logger.Error(err, "error to read body", "uri", r.RequestURI)
 		writeError(w, err)
 		return
 	}
 
 	newUUID, err := s.mocker.New(body)
 	if err != nil {
+		s.logger.Error(err, "error to create new mock", "uri", r.RequestURI, "body", body)
 		writeError(w, err)
 		return
 	}
@@ -269,26 +283,44 @@ func (s HTTPServer) addNewMock(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(fmt.Sprintf(`{"uuid": "%s"}`, *newUUID)))
 }
 
+func (s HTTPServer) findRemoteAddr(data string) string {
+	ipPort := stringsutil.Split(data, ":", "")
+	if len(ipPort) == 0 {
+		return "[::1]"
+	}
+	if len(ipPort) == 1 || len(ipPort) == 2 {
+		return ipPort[0]
+	}
+	return data[:len(data)-(len(ipPort[len(ipPort)-1])+1)]
+}
+
 func (s HTTPServer) getRemoteAddr() map[string]int {
 	loaded, err := iosutil.Load(s.workingDirectory + "/remote-addr.json")
-	if err == nil {
-		data, err := jsonsutil.Unmarshal[map[string]int](loaded)
-		if err == nil {
-			return data
-		}
+	if err != nil {
+		s.logger.Error(err, "error to load remote addresses", "file", s.workingDirectory+"/remote-addr.json")
+		return map[string]int{}
 	}
-	return map[string]int{}
+
+	data, err := jsonsutil.Unmarshal[map[string]int](loaded)
+	if err != nil {
+		s.logger.Error(err, "error to unmarshal data", "file", s.workingDirectory+"/remote-addr.json", "body", data)
+		return map[string]int{}
+	}
+
+	return data
 }
 
 func (s HTTPServer) list(w http.ResponseWriter, r *http.Request) {
 	all, err := s.mocker.List()
 	if err != nil {
+		s.logger.Error(err, "error to get mocked list", "uri", r.RequestURI)
 		writeError(w, err)
 		return
 	}
 
 	data, err := jsonsutil.Marshal(all)
 	if err != nil {
+		s.logger.Error(err, "error to marshal list", "uri", r.RequestURI)
 		writeError(w, err)
 		return
 	}
