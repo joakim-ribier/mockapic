@@ -11,11 +11,10 @@
 [![Docker Pulls](https://badgen.net/docker/pulls/joakimribier/mockapic?icon=docker&label=pulls)](https://hub.docker.com/r/joakimribier/mockapic/)
 [![Docker Image Size](https://badgen.net/docker/size/joakimribier/mockapic?icon=docker&label=image%20size)](https://hub.docker.com/r/joakimribier/mockapic/)
 
-`MOCKAPIC` is a Go HTTP server - The easiest way to test your web services securely and privately using a Docker container in Golang.
+`MOCKAPIC` [mokapik] is a Go HTTP server - The easiest way to test your web services securely and privately using a Docker container in Golang.
 
 ```bash
 $ curl http://localhost:3333/
-
 
     __  ___              __                  _
    /  |/  /____   _____ / /__ ____ _ ____   (_)_____
@@ -52,7 +51,7 @@ $ curl http://localhost:3333/
  POST   | /v1/add               | Create a new mocked request
 ```
 
-[Usage](#usage) - [APIs](#apis) - [Test](#test) - [Docker](#docker) - [CI](#ci) - [Demo](#demo) - [License](#license)
+[Usage](#usage) - [APIs](#apis) - [Test](#test) - [Docker](#docker) - [CI](#ci) - [Demo](#demo) - [Thanks](#thanks) - [License](#license)
 
 ## Usage
 
@@ -71,13 +70,15 @@ Deploy it as a service or use it directly in your development for integration te
 ```bash
 $ cd cmd/httpserver
 $ ./httpserver --home /home/{user}/app/mockapic --port 3333
-       ______        __  ___ ____   ______ __ ____  __      __   _____  ______ ____  _    __ ______ ____
-      / ____/       /  |/  // __ \ / ____// //_/\ \/ /    _/_/  / ___/ / ____// __ \| |  / // ____// __ \
-     / / __ ______ / /|_/ // / / // /    / ,<    \  /   _/_/    \__ \ / __/  / /_/ /| | / // __/  / /_/ /
-    / /_/ //_____// /  / // /_/ // /___ / /| |   / /  _/_/     ___/ // /___ / _, _/ | |/ // /___ / _, _ /_  _  _
-    \____/       /_/  /_/ \____/ \____//_/ |_|  /_/  /_/      /____//_____//_/ |_|  |___//_____//_/ |_| (_)(_)(_)
-                                                                    https://github.com/joakim-ribier/mockapic
-Server running on port 3333....
+    __  ___              __                  _
+   /  |/  /____   _____ / /__ ____ _ ____   (_)_____
+  / /|_/ // __ \ / ___// //_// __ '// __ \ / // ___/
+ / /  / // /_/ // /__ / ,<  / /_/ // /_/ // // /__   _  _  _
+/_/  /_/ \____/ \___//_/|_| \__,_// .___//_/ \___/  (_)(_)(_)
+                                 /_/
+                    https://github.com/joakim-ribier/mockapic
+
+Server running on port http[:3333]....
 ```
 
 2. Create a new mocked request
@@ -345,9 +346,14 @@ Loaded image: mockapic:latest
 
 ## Demo
 
-Access to the demo version to try the service (`limited to 100 mocked requests`), feel free to use it [https://mockapic-dev](https://mockapic.dev).
+Access to the demo version to try the service (`limited to 100 mocked requests`), feel free to use it [https://mockapic-dev](https://gmocky.dev).
 
 _the server is not always operational so don't hesitate to try later_
+
+## Thanks
+
+* [Bruno Adele](https://x.com/jesuislibre) and [Paul Leclercq](https://github.com/polomarcus) to help me to find a project name
+* [Julien Lafont](https://x.com/julien_lafont) for the awesome [mocky.io](https://designer.mocky.io/)
 
 ## License
 
