@@ -23,5 +23,5 @@ go.work.sum
 
 .DS_Store
 httpserver
-cert/gmocky*
-gmocky-v2
+cert/mockapic*
+mockapic

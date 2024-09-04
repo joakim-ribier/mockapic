@@ -10,12 +10,12 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jedib0t/go-pretty/v6/table"
-	"github.com/joakim-ribier/gmocky-v2/internal"
-	"github.com/joakim-ribier/gmocky-v2/pkg"
 	"github.com/joakim-ribier/go-utils/pkg/iosutil"
 	"github.com/joakim-ribier/go-utils/pkg/jsonsutil"
 	"github.com/joakim-ribier/go-utils/pkg/logsutil"
 	"github.com/joakim-ribier/go-utils/pkg/stringsutil"
+	"github.com/joakim-ribier/mockapic/internal"
+	"github.com/joakim-ribier/mockapic/pkg"
 )
 
 // HTTPServer represents a http server struct
@@ -71,8 +71,8 @@ func (s HTTPServer) Listen() error {
 	if s.SSLEnabled {
 		return http.ListenAndServeTLS(
 			":"+s.Port,
-			s.certDirectory+"/"+internal.GMOCKY_CERT_FILENAME,
-			s.certDirectory+"/"+internal.GMOCKY_PEM_FILENAME,
+			s.certDirectory+"/"+internal.MOCKAPIC_CERT_FILENAME,
+			s.certDirectory+"/"+internal.MOCKAPIC_PEM_FILENAME,
 			server,
 		)
 	} else {
@@ -125,8 +125,8 @@ func (s HTTPServer) home(w http.ResponseWriter, r *http.Request) {
 
 	buildStatsTable := func() string {
 		maxLimit := "unlimited"
-		if internal.GMOCKY_REQ_MAX_LIMIT > 0 {
-			maxLimit = strconv.Itoa(internal.GMOCKY_REQ_MAX_LIMIT)
+		if internal.MOCKAPIC_REQ_MAX_LIMIT > 0 {
+			maxLimit = strconv.Itoa(internal.MOCKAPIC_REQ_MAX_LIMIT)
 		}
 
 		nb := "N/A"
@@ -272,8 +272,8 @@ func (s HTTPServer) addNewMock(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if internal.GMOCKY_REQ_MAX_LIMIT > 0 {
-		s.mocker.Clean(internal.GMOCKY_REQ_MAX_LIMIT)
+	if internal.MOCKAPIC_REQ_MAX_LIMIT > 0 {
+		s.mocker.Clean(internal.MOCKAPIC_REQ_MAX_LIMIT)
 	}
 
 	countRemoteAddr()

@@ -4,9 +4,9 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/joakim-ribier/gmocky-v2/internal"
 	"github.com/joakim-ribier/go-utils/pkg/slicesutil"
 	"github.com/joakim-ribier/go-utils/pkg/timesutil"
+	"github.com/joakim-ribier/mockapic/internal"
 )
 
 type ResponseWriterTest struct {

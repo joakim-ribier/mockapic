@@ -13,11 +13,11 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/joakim-ribier/gmocky-v2/internal"
-	"github.com/joakim-ribier/gmocky-v2/pkg"
 	"github.com/joakim-ribier/go-utils/pkg/httpsutil"
 	"github.com/joakim-ribier/go-utils/pkg/jsonsutil"
 	"github.com/joakim-ribier/go-utils/pkg/logsutil"
+	"github.com/joakim-ribier/mockapic/internal"
+	"github.com/joakim-ribier/mockapic/pkg"
 )
 
 type MockerTest struct {
@@ -64,7 +64,7 @@ func TestMain(m *testing.M) {
 		log.Fatal(err)
 	}
 	workingDirectory = dir
-	logger, err = logsutil.NewLogger(workingDirectory+"/application-test.log", "gmocky-v2-test")
+	logger, err = logsutil.NewLogger(workingDirectory+"/application-test.log", "mockapic-test")
 	if err != nil {
 		panic(err)
 	}
@@ -105,8 +105,8 @@ func TestListen(t *testing.T) {
 // TestListen calls HTTPServer.Listen(),
 // checking for a valid return value.
 func TestListenSSL(t *testing.T) {
-	internal.GMOCKY_CERT_FILENAME = "example.crt"
-	internal.GMOCKY_PEM_FILENAME = "example.key"
+	internal.MOCKAPIC_CERT_FILENAME = "example.crt"
+	internal.MOCKAPIC_PEM_FILENAME = "example.key"
 
 	httpServer := NewHTTPServer("3333", true, "../../cert", workingDirectory, &MockerTest{}, *logger)
 
@@ -315,7 +315,7 @@ func TestListEndpoint(t *testing.T) {
 // TestAddNewEndpoint calls HTTPServer.addNewMock(http.ResponseWriter, *http.Request),
 // checking for a valid return value.
 func TestAddNewEndpoint(t *testing.T) {
-	internal.GMOCKY_REQ_MAX_LIMIT = 100
+	internal.MOCKAPIC_REQ_MAX_LIMIT = 100
 
 	req := httptest.NewRequest(http.MethodPost, "/v1/new", strings.NewReader(`{
     	"status": 200,

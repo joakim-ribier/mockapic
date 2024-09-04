@@ -7,20 +7,21 @@ import (
 )
 
 const LOGO = `
-       ______        __  ___ ____   ______ __ ____  __      __   _____  ______ ____  _    __ ______ ____
-      / ____/       /  |/  // __ \ / ____// //_/\ \/ /    _/_/  / ___/ / ____// __ \| |  / // ____// __ \
-     / / __ ______ / /|_/ // / / // /    / ,<    \  /   _/_/    \__ \ / __/  / /_/ /| | / // __/  / /_/ /
-    / /_/ //_____// /  / // /_/ // /___ / /| |   / /  _/_/     ___/ // /___ / _, _/ | |/ // /___ / _, _ /_  _  _
-    \____/       /_/  /_/ \____/ \____//_/ |_|  /_/  /_/      /____//_____//_/ |_|  |___//_____//_/ |_| (_)(_)(_)
-                                                                    https://github.com/joakim-ribier/gmocky-v2
+    __  ___              __                  _
+   /  |/  /____   _____ / /__ ____ _ ____   (_)_____
+  / /|_/ // __ \ / ___// //_// __ '// __ \ / // ___/
+ / /  / // /_/ // /__ / ,<  / /_/ // /_/ // // /__   _  _  _
+/_/  /_/ \____/ \___//_/|_| \__,_// .___//_/ \___/  (_)(_)(_)
+                                 /_/
+                    https://github.com/joakim-ribier/mockapic
 `
 
-var GMOCKY_HOME = os.Getenv("GMOCKY_HOME")
-var GMOCKY_REQ_MAX_LIMIT = stringsutil.Int(os.Getenv("GMOCKY_REQ_MAX_LIMIT"), -1)
+var MOCKAPIC_HOME = os.Getenv("MOCKAPIC_HOME")
+var MOCKAPIC_REQ_MAX_LIMIT = stringsutil.Int(os.Getenv("MOCKAPIC_REQ_MAX_LIMIT"), -1)
 
-var GMOCKY_PORT = os.Getenv("GMOCKY_PORT")
+var MOCKAPIC_PORT = os.Getenv("MOCKAPIC_PORT")
 
-var GMOCKY_SSL = stringsutil.Bool(os.Getenv("GMOCKY_SSL"))
-var GMOCKY_CERT_DIRECTORY = os.Getenv("GMOCKY_CERT")
-var GMOCKY_CERT_FILENAME = "gmocky.crt"
-var GMOCKY_PEM_FILENAME = "gmocky.key"
+var MOCKAPIC_SSL = stringsutil.Bool(os.Getenv("MOCKAPIC_SSL"))
+var MOCKAPIC_CERT_DIRECTORY = os.Getenv("MOCKAPIC_CERT")
+var MOCKAPIC_CERT_FILENAME = "mockapic.crt"
+var MOCKAPIC_PEM_FILENAME = "mockapic.key"

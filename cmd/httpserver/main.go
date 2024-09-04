@@ -5,63 +5,63 @@ import (
 	"log"
 	"os"
 
-	"github.com/joakim-ribier/gmocky-v2/internal"
-	"github.com/joakim-ribier/gmocky-v2/internal/server"
 	"github.com/joakim-ribier/go-utils/pkg/genericsutil"
 	"github.com/joakim-ribier/go-utils/pkg/logsutil"
 	"github.com/joakim-ribier/go-utils/pkg/slicesutil"
 	"github.com/joakim-ribier/go-utils/pkg/stringsutil"
+	"github.com/joakim-ribier/mockapic/internal"
+	"github.com/joakim-ribier/mockapic/internal/server"
 )
 
 func main() {
 	args := slicesutil.ToMap(os.Args[1:])
 	if arg, ok := args["--home"]; ok {
-		internal.GMOCKY_HOME = arg
-		if _, err := os.Open(internal.GMOCKY_HOME); err != nil {
+		internal.MOCKAPIC_HOME = arg
+		if _, err := os.Open(internal.MOCKAPIC_HOME); err != nil {
 			log.Fatalf("%v", err)
 		}
 	}
 	if arg, ok := args["--req_max"]; ok {
-		internal.GMOCKY_REQ_MAX_LIMIT = stringsutil.Int(arg, -1)
+		internal.MOCKAPIC_REQ_MAX_LIMIT = stringsutil.Int(arg, -1)
 	}
 	if arg, ok := args["--port"]; ok {
-		internal.GMOCKY_PORT = arg
+		internal.MOCKAPIC_PORT = arg
 	}
 	if arg, ok := args["--cert"]; ok {
-		internal.GMOCKY_CERT_DIRECTORY = arg
+		internal.MOCKAPIC_CERT_DIRECTORY = arg
 	}
 	if arg, ok := args["--ssl"]; ok {
-		internal.GMOCKY_SSL = stringsutil.Bool(arg)
-		if internal.GMOCKY_SSL && internal.GMOCKY_CERT_DIRECTORY == "" {
-			internal.GMOCKY_CERT_FILENAME = "example.crt"
-			internal.GMOCKY_PEM_FILENAME = "example.key"
-			internal.GMOCKY_CERT_DIRECTORY = "../../cert"
+		internal.MOCKAPIC_SSL = stringsutil.Bool(arg)
+		if internal.MOCKAPIC_SSL && internal.MOCKAPIC_CERT_DIRECTORY == "" {
+			internal.MOCKAPIC_CERT_FILENAME = "example.crt"
+			internal.MOCKAPIC_PEM_FILENAME = "example.key"
+			internal.MOCKAPIC_CERT_DIRECTORY = "../../cert"
 		}
 	}
 
-	logger, err := logsutil.NewLogger(internal.GMOCKY_HOME+"/application.log", "gmocky-v2")
+	logger, err := logsutil.NewLogger(internal.MOCKAPIC_HOME+"/application.log", "mockapic")
 	if err != nil {
 		log.Fatalf("%v", err)
 	}
 
 	logger.Info(internal.LOGO,
-		"home", internal.GMOCKY_HOME,
-		"port", internal.GMOCKY_PORT,
-		"ssl", internal.GMOCKY_SSL,
-		"req_max", internal.GMOCKY_REQ_MAX_LIMIT,
+		"home", internal.MOCKAPIC_HOME,
+		"port", internal.MOCKAPIC_PORT,
+		"ssl", internal.MOCKAPIC_SSL,
+		"req_max", internal.MOCKAPIC_REQ_MAX_LIMIT,
 	)
 
 	httpServer := server.NewHTTPServer(
-		stringsutil.OrElse(internal.GMOCKY_PORT, "3333"),
-		internal.GMOCKY_SSL,
-		internal.GMOCKY_CERT_DIRECTORY,
-		internal.GMOCKY_HOME,
-		internal.NewMock(internal.GMOCKY_HOME+"/requests", *logger),
+		stringsutil.OrElse(internal.MOCKAPIC_PORT, "3333"),
+		internal.MOCKAPIC_SSL,
+		internal.MOCKAPIC_CERT_DIRECTORY,
+		internal.MOCKAPIC_HOME,
+		internal.NewMock(internal.MOCKAPIC_HOME+"/requests", *logger),
 		*logger)
 
 	fmt.Print(internal.LOGO)
-	fmt.Printf("Server running on port %s[:%s]....\n",
-		genericsutil.When(internal.GMOCKY_SSL, func(arg bool) bool { return arg }, "https", "http"),
+	fmt.Printf("\nServer running on port %s[:%s]....\n",
+		genericsutil.When(internal.MOCKAPIC_SSL, func(arg bool) bool { return arg }, "https", "http"),
 		httpServer.Port)
 
 	if err := httpServer.Listen(); err != nil {

@@ -1,4 +1,4 @@
-module github.com/joakim-ribier/gmocky-v2
+module github.com/joakim-ribier/mockapic
 
 go 1.22.5
 

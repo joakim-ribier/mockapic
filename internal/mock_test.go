@@ -24,7 +24,7 @@ func TestMain(m *testing.M) {
 		log.Fatal(err)
 	}
 	workingDirectory = dir
-	logger, err = logsutil.NewLogger(workingDirectory+"/application-test.log", "gmocky-v2-test")
+	logger, err = logsutil.NewLogger(workingDirectory+"/application-test.log", "mockapic-test")
 	if err != nil {
 		panic(err)
 	}

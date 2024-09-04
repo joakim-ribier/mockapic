@@ -8,12 +8,12 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/joakim-ribier/gmocky-v2/pkg"
 	"github.com/joakim-ribier/go-utils/pkg/genericsutil"
 	"github.com/joakim-ribier/go-utils/pkg/iosutil"
 	"github.com/joakim-ribier/go-utils/pkg/jsonsutil"
 	"github.com/joakim-ribier/go-utils/pkg/logsutil"
 	"github.com/joakim-ribier/go-utils/pkg/slicesutil"
+	"github.com/joakim-ribier/mockapic/pkg"
 )
 
 type MockedRequest struct {

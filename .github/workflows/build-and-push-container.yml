@@ -9,7 +9,7 @@ on:
 
 env:
   REGISTRY: joakimribier
-  IMAGE_NAME: gmocky-v2
+  IMAGE_NAME: mockapic
 
 jobs:
   build_and_push:
@@ -61,6 +61,6 @@ jobs:
     - name: Repository Dispatch
       uses: peter-evans/repository-dispatch@v3
       with:
-        token: ${{ secrets.GMOCKY_V2_TOKEN }}
+        token: ${{ secrets.MOCKAPIC_TOKEN }}
         repository: joakim-ribier/go-utils
         event-type: 'trigger-from-event:build_and_test'

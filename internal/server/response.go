@@ -4,9 +4,9 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/joakim-ribier/gmocky-v2/internal"
 	"github.com/joakim-ribier/go-utils/pkg/genericsutil"
 	"github.com/joakim-ribier/go-utils/pkg/stringsutil"
+	"github.com/joakim-ribier/mockapic/internal"
 )
 
 // Response represents a {http.ResponseWriter} from the HTTP request
