@@ -6,6 +6,8 @@ on:
       coverage:
         required: true
         type: boolean
+    secrets:
+      codecov:
 
 jobs:
   build_test_coverage:
@@ -29,5 +31,5 @@ jobs:
       if: ${{ inputs.coverage }}
       uses: codecov/codecov-action@v3
       with:
-        token: ${{ secrets.CODECOV_TOKEN }} # required
+        token: ${{ secrets.codecov }} # required
         verbose: true # optional (default = false)

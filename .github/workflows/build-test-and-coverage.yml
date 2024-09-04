@@ -12,3 +12,5 @@ jobs:
     uses: ./.github/workflows/build_test_and_coverage_reusable.yml
     with:
       coverage: true
+    secrets:
+      codecov: ${{ secrets.CODECOV_TOKEN }}
