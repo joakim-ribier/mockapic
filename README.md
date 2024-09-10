@@ -152,7 +152,7 @@ $ curl -v -GET 'http://localhost:3333/v1/79090265-a1af-47ec-a177-88668582ce28'
 < Content-Type: application/json; charset=UTF-8
 ```
 
-For more examples, see [`Mockapic-test`](https://github.com/joakim-ribier/mockapic-test) a real implementation use case of how to use `Mockapic`.
+For more examples, see [`Mockapic-test`](https://github.com/joakim-ribier/mockapic-test) a real implementation use case of how to use `Mockapic` in a specific language.
 
 ### SSL/Tls
 
