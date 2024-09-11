@@ -11,7 +11,7 @@
 [![Docker Pulls](https://badgen.net/docker/pulls/joakimribier/mockapic?icon=docker&label=pulls)](https://hub.docker.com/r/joakimribier/mockapic/)
 [![Docker Image Size](https://badgen.net/docker/size/joakimribier/mockapic?icon=docker&label=image%20size)](https://hub.docker.com/r/joakimribier/mockapic/)
 
-`MOCKAPIC` [mokapik] is a Go HTTP server - The easiest way to test your web services securely and privately using a Docker container.
+`Mockapic` [mokapik] is a Go HTTP server - The easiest way to test your web services securely and privately using a Docker container.
 
 It's always complicated to test easly your application when it uses external API services, for many reasons:
 
@@ -22,7 +22,7 @@ It's always complicated to test easly your application when it uses external API
 * it's not possible to test my implementation on several behaviors
 * ...
 
-It's for all these reasons that I created `MOCKAPIC` (based on the awesome [mocky.io](https://designer.mocky.io/) idea). The main goal is to be able to better test your code on several behaviors when calling external API services.
+It's for all these reasons that I created `Mockapic` (based on the awesome [mocky.io](https://designer.mocky.io/) idea). The main goal is to be able to better test your code on several behaviors when calling external API services.
 
 [Usage](#usage) - [How it works](#how-it-works) - [APIs](#apis) - [Test](#test) - [Docker](#docker) - [CI](#ci) - [Demo](#demo) - [Thanks](#thanks) - [License](#license)
 
@@ -320,7 +320,7 @@ _the server is not always operational so don't hesitate to try later_
 
 ## Thanks
 
-* [Bruno Adele](https://x.com/jesuislibre) and [Paul Leclercq](https://github.com/polomarcus) to help me to find a project name
+* [Bruno Adele](https://x.com/jesuislibre) and [Paul Leclercq](https://github.com/polomarcus) to help me to improve `Mockapic`
 * [Julien Lafont](https://x.com/julien_lafont) for the awesome [mocky.io](https://designer.mocky.io/)
 
 ## License
