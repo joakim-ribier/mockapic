@@ -15,12 +15,14 @@ import (
 
 func main() {
 	args := slicesutil.ToMap(os.Args[1:])
+
 	if arg, ok := args["--home"]; ok {
 		internal.MOCKAPIC_HOME = arg
-		if _, err := os.Open(internal.MOCKAPIC_HOME); err != nil {
-			log.Fatalf("%v", err)
-		}
 	}
+	if _, err := os.Open(internal.MOCKAPIC_HOME); err != nil {
+		log.Fatalf("'--home' parameter must be a valid directory.\n%v", err)
+	}
+
 	if arg, ok := args["--req_max"]; ok {
 		internal.MOCKAPIC_REQ_MAX_LIMIT = stringsutil.Int(arg, -1)
 	}
