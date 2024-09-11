@@ -152,7 +152,9 @@ $ curl -v -GET 'http://localhost:3333/v1/79090265-a1af-47ec-a177-88668582ce28'
 < Content-Type: application/json; charset=UTF-8
 ```
 
-For more examples, see [`Mockapic-test`](https://github.com/joakim-ribier/mockapic-test) a real implementation use case of how to use `Mockapic` in a specific language.
+For more examples, please find for a specific language the use case of how to use `Mockapic` in your implementation:
+
+* [`Golang`](https://github.com/joakim-ribier/mockapic-example-go)
 
 ### SSL/Tls
 
@@ -297,20 +299,6 @@ Server running on port 3333....
 $ docker tag mockapic:latest joakimribier/mockapic:latest
 $ docker login -u "{username}" docker.io
 $ docker push joakimribier/mockapic:latest
-```
-
-### Save and Load
-
-```bash
-$ docker save -o mockapic mockapic
-
-$ scp ... # copy the image
-
-$ docker load -i mockapic
-...
-dd63366eb47d: Loading layer [==================================================>]  77.58MB/77.58MB
-3025ebe291d8: Loading layer [==================================================>]  7.267MB/7.267MB
-Loaded image: mockapic:latest
 ```
 
 ## CI
