@@ -104,7 +104,10 @@ $ curl -X POST 'http://localhost:3333/v1/new?status=200&contentType=application%
                                  Dload  Upload   Total   Spent    Left  Speed
 100   408  100    48  100   360  13892   101k --:--:-- --:--:-- --:--:--  132k
 {
-  "uuid": "c1403100-3aa0-484f-8e0f-f2c1db80f371"
+  "uuid": "c1403100-3aa0-484f-8e0f-f2c1db80f371",
+  "_links": {
+    "self": "http://localhost:3333/v1/c1403100-3aa0-484f-8e0f-f2c1db80f371"
+  }
 }
 ```
 
@@ -116,7 +119,10 @@ $ curl -X POST 'http://localhost:3333/v1/new?status=500&contentType=application%
                                  Dload  Upload   Total   Spent    Left  Speed
 100   408  100    48  100   360  13892   101k --:--:-- --:--:-- --:--:--  132k
 {
-  "uuid": "79090265-a1af-47ec-a177-88668582ce28"
+  "uuid": "79090265-a1af-47ec-a177-88668582ce28",
+  "_links": {
+    "self": "http://localhost:3333/v1/79090265-a1af-47ec-a177-88668582ce28"
+  }
 }
 ```
 
