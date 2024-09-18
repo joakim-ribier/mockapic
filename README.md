@@ -91,7 +91,6 @@ The first one simulate a real response of the external API service which returns
 
 ```bash
 $ curl -X POST 'http://localhost:3333/v1/new?status=200&contentType=application%2Fjson&charset=UTF-8&domain=github.com%2Fjoakim-ribier&project=mockapic' \
---header 'Content-Type: application/json' \
 --data '{
   "timestamp":1725967696,
   "rates":{
