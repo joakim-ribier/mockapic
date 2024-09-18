@@ -16,6 +16,7 @@ import (
 	"github.com/joakim-ribier/go-utils/pkg/httpsutil"
 	"github.com/joakim-ribier/go-utils/pkg/jsonsutil"
 	"github.com/joakim-ribier/go-utils/pkg/logsutil"
+	"github.com/joakim-ribier/go-utils/pkg/stringsutil"
 	"github.com/joakim-ribier/mockapic/internal"
 	"github.com/joakim-ribier/mockapic/pkg"
 )
@@ -40,12 +41,19 @@ func (m *MockerTest) List() ([]internal.MockedRequestLight, error) {
 	return nil, errors.New("error to list mocked responses")
 }
 
-func (m *MockerTest) New(body []byte) (*string, error) {
-	mock, err := jsonsutil.Unmarshal[internal.MockedRequest](body)
-	if err != nil {
+func (m *MockerTest) New(reqParams map[string][]string, body []byte) (*string, error) {
+	if len(reqParams["status"]) == 0 || len(reqParams["contentType"]) == 0 || len(reqParams["charset"]) == 0 {
 		return nil, errors.New("error to add new mocked response")
 	}
-	m.mockResponse = &mock
+
+	mockedRequest := &internal.MockedRequest{
+		Status:      stringsutil.Int(reqParams["status"][0], -1),
+		ContentType: reqParams["contentType"][0],
+		Charset:     reqParams["charset"][0],
+		Body:        body,
+	}
+
+	m.mockResponse = mockedRequest
 	var r string = "OK"
 	return &r, nil
 }
@@ -248,7 +256,7 @@ func TestFindMockResponseEndpoint(t *testing.T) {
 			Status:      200,
 			ContentType: "text/plain",
 			Charset:     "UTF-8",
-			Body:        "Hello World",
+			Body:        []byte("Hello World"),
 		},
 	}
 	NewHTTPServer("{port}", false, "", workingDirectory, mocker, *logger).findMock(w, req)
@@ -317,12 +325,8 @@ func TestListEndpoint(t *testing.T) {
 func TestAddNewEndpoint(t *testing.T) {
 	internal.MOCKAPIC_REQ_MAX_LIMIT = 100
 
-	req := httptest.NewRequest(http.MethodPost, "/v1/new", strings.NewReader(`{
-    	"status": 200,
-    	"contentType": "text/plain",
-    	"charset": "UTF-8",
-    	"body": "Hello World"
-	}`))
+	URL := "/v1/new?status=200&contentType=text/plain&charset=UTF-8"
+	req := httptest.NewRequest(http.MethodPost, URL, strings.NewReader("Hello World"))
 	w := httptest.NewRecorder()
 
 	mocker := &MockerTest{mockResponse: nil, clean: false}
@@ -334,7 +338,7 @@ func TestAddNewEndpoint(t *testing.T) {
 		Status:      200,
 		ContentType: "text/plain",
 		Charset:     "UTF-8",
-		Body:        "Hello World",
+		Body:        []byte("Hello World"),
 	}
 	if res.Status != "200 OK" ||
 		!strings.Contains(string(body), `{"uuid":`) ||
@@ -344,9 +348,9 @@ func TestAddNewEndpoint(t *testing.T) {
 	}
 }
 
-// TestAddNewEndpointWithBadBody calls HTTPServer.addNewMock(http.ResponseWriter, *http.Request),
+// TestAddNewEndpointWithBadRequest calls HTTPServer.addNewMock(http.ResponseWriter, *http.Request),
 // checking for a valid return value.
-func TestAddNewEndpointWithBadBody(t *testing.T) {
+func TestAddNewEndpointWithBadRequest(t *testing.T) {
 	req := httptest.NewRequest(http.MethodPost, "/v1/new", strings.NewReader("bad body..."))
 	w := httptest.NewRecorder()
 

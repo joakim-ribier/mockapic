@@ -1,6 +1,7 @@
 package internal
 
 import (
+	"bytes"
 	"fmt"
 	"io/fs"
 	"os"
@@ -13,6 +14,7 @@ import (
 	"github.com/joakim-ribier/go-utils/pkg/jsonsutil"
 	"github.com/joakim-ribier/go-utils/pkg/logsutil"
 	"github.com/joakim-ribier/go-utils/pkg/slicesutil"
+	"github.com/joakim-ribier/go-utils/pkg/stringsutil"
 	"github.com/joakim-ribier/mockapic/pkg"
 )
 
@@ -20,27 +22,25 @@ type MockedRequest struct {
 	UUID      string
 	CreatedAt string
 	// payload from request
-	Name        string
 	Status      int
 	ContentType string
 	Charset     string
 	Headers     map[string]string
-	Body        string
+	Body        []byte
 }
 
-// Equals returns true if the two structs are equal
+// Equals returns true if the two requests are equal
 func (m MockedRequest) Equals(arg MockedRequest) bool {
 	return m.Status == arg.Status &&
 		m.ContentType == arg.ContentType &&
 		m.Charset == arg.Charset &&
-		m.Body == arg.Body &&
+		bytes.Equal(m.Body, arg.Body) &&
 		reflect.DeepEqual(m.Headers, arg.Headers)
 }
 
 type MockedRequestLight struct {
 	UUID        string
 	CreatedAt   string
-	Name        string
 	Status      int
 	ContentType string
 }
@@ -48,7 +48,7 @@ type MockedRequestLight struct {
 type Mocker interface {
 	Get(mockId string) (*MockedRequest, error)
 	List() ([]MockedRequestLight, error)
-	New(body []byte) (*string, error)
+	New(params map[string][]string, body []byte) (*string, error)
 	Clean(maxLimit int) (int, error)
 }
 
@@ -104,15 +104,36 @@ func (m Mock) List() ([]MockedRequestLight, error) {
 		values, func() bool { return len(values) > 0 }, []MockedRequestLight{}), nil
 }
 
-// New adds a new mocked request and returns the new UUID
-func (m Mock) New(body []byte) (*string, error) {
-	var mock *MockedRequest
-	data, err := jsonsutil.Unmarshal[MockedRequest](body)
-	if err != nil {
-		m.logger.Error(err, "error to unmarshal data", "data", body)
-		return nil, err
+// New creates a new mocked request and returns the new UUID
+func (m Mock) New(reqParams map[string][]string, reqBody []byte) (*string, error) {
+	mock := &MockedRequest{
+		UUID:      uuid.NewString(),
+		CreatedAt: time.Now().Format("2006-01-02 15:04:05"),
+		Body:      reqBody,
+		Headers:   map[string]string{},
 	}
-	mock = &data
+
+	getReqParam := func(values []string) string {
+		if len(values) == 0 {
+			return ""
+		}
+		return values[0]
+	}
+
+	for name, values := range reqParams {
+		switch name {
+		case "contentType":
+			mock.ContentType = getReqParam(values)
+		case "charset":
+			mock.Charset = getReqParam(values)
+		case "status":
+			mock.Status = stringsutil.Int(getReqParam(values), -1)
+		default:
+			if len(values) > 0 {
+				mock.Headers[name] = values[0]
+			}
+		}
+	}
 
 	if _, is := pkg.HTTP_CODES[mock.Status]; !is {
 		return nil, fmt.Errorf("status {%d} does not exist", mock.Status)
@@ -126,16 +147,13 @@ func (m Mock) New(body []byte) (*string, error) {
 		return nil, fmt.Errorf("charset {%s} does not exist", mock.Charset)
 	}
 
-	mock.UUID = uuid.NewString()
-	mock.CreatedAt = time.Now().Format("2006-01-02 15:04:05")
-
-	body, err = jsonsutil.Marshal(mock)
+	reqBody, err := jsonsutil.Marshal(mock)
 	if err != nil {
 		m.logger.Error(err, "error to nmarshal data", "mock", mock)
 		return nil, err
 	}
 
-	err = iosutil.Write(body, m.workingDirectory+"/"+mock.UUID+".json")
+	err = iosutil.Write(reqBody, m.workingDirectory+"/"+mock.UUID+".json")
 	if err != nil {
 		m.logger.Error(err, "error to write data", "mock", mock, "workingDirectory", m.workingDirectory)
 		return nil, err

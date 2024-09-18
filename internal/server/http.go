@@ -49,7 +49,9 @@ func (s HTTPServer) Listen() error {
 
 	handleFunc := func(method, pattern string, handle func(w http.ResponseWriter, r *http.Request)) {
 		server.HandleFunc(pattern, func(w http.ResponseWriter, r *http.Request) {
-			s.logger.Info("request", "uri", r.RequestURI, "method", r.Method)
+			remoteAddr := s.findRemoteAddr(r.RemoteAddr)
+			s.logger.Info("request", "uri", r.RequestURI, "method", r.Method, "remoteAddr", remoteAddr)
+
 			if r.Method != method {
 				w.WriteHeader(404)
 				return
@@ -265,7 +267,7 @@ func (s HTTPServer) addNewMock(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	newUUID, err := s.mocker.New(body)
+	newUUID, err := s.mocker.New(r.URL.Query(), body)
 	if err != nil {
 		s.logger.Error(err, "error to create new mock", "uri", r.RequestURI, "body", body)
 		writeError(w, err)

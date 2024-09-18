@@ -35,7 +35,7 @@ func TestWrite(t *testing.T) {
 		Status:      200,
 		ContentType: "text/plain",
 		Charset:     "UTF-8",
-		Body:        "Hello World",
+		Body:        []byte("Hello World"),
 		Headers:     map[string]string{"x-language": "golang"},
 	}
 
@@ -66,7 +66,7 @@ func TestWriteWithMaxDelay(t *testing.T) {
 		Status:      200,
 		ContentType: "text/plain",
 		Charset:     "UTF-8",
-		Body:        "Hello World",
+		Body:        []byte("Hello World"),
 		Headers:     map[string]string{"x-language": "golang"},
 	}
 
