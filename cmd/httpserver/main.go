@@ -53,6 +53,11 @@ func main() {
 		"req_max", internal.MOCKAPIC_REQ_MAX_LIMIT,
 	)
 
+	err = os.MkdirAll(internal.MOCKAPIC_HOME+"/requests", os.ModePerm)
+	if err != nil {
+		log.Fatalf("%v", err)
+	}
+
 	httpServer := server.NewHTTPServer(
 		stringsutil.OrElse(internal.MOCKAPIC_PORT, "3333"),
 		internal.MOCKAPIC_SSL,

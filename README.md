@@ -64,11 +64,11 @@ Parameters of the service
 
 | Option    | Env                     | Value                       | Default          | Description |
 | ---       | ---                     | ---                         | ---              | ---
-| --home    | MOCKAPIC_HOME             | /home/{user}/app/mockapic  | .                | Define the working directory<br>The folder must contain a `/requests` subfolder for the mocked requests
-| --port    | MOCKAPIC_PORT             | 3333                        | 3333             | Define a specific port
-| --req_max | MOCKAPIC_REQ_MAX_LIMIT    | 100                         | -1 (`unlimited`) | Define the max limit of the mocked requests
-| --ssl     | MOCKAPIC_SSL              | true                        | false            | Enable SSL/Tls HTTP server (need to provide certificate)
-| --cert    | MOCKAPIC_CERT             | /home/{user}/app/mockapic  | 3333             | Define the certificate directory to contain (`mockapic.cert` and `mockapic.key`)
+| --home    | MOCKAPIC_HOME           | /home/{user}/app/mockapic   | .                | Define the working directory<br>The folder must contain a `/requests` subfolder for the mocked requests
+| --port    | MOCKAPIC_PORT           | 3333                        | 3333             | Define a specific port
+| --req_max | MOCKAPIC_REQ_MAX_LIMIT  | 100                         | -1 (`unlimited`) | Define the max limit of the mocked requests
+| --ssl     | MOCKAPIC_SSL            | true                        | false            | Enable SSL/Tls HTTP server (need to provide certificate)
+| --cert    | MOCKAPIC_CERT           | /home/{user}/app/mockapic   | 3333             | Define the certificate directory to contain (`mockapic.cert` and `mockapic.key`)
 
 1. Start `Mockapic`
 
@@ -90,14 +90,16 @@ Server running on port http[:3333]....
 The first one simulate a real response of the external API service which returns the exchange rates:
 
 ```bash
-$ curl -X POST 'http://localhost:3333/v1/new' \
+$ curl -X POST 'http://localhost:3333/v1/new?status=200&contentType=application%2Fjson&charset=UTF-8&domain=github.com%2Fjoakim-ribier&project=mockapic' \
 --header 'Content-Type: application/json' \
 --data '{
-    "Name": "Exchange rates - 200",
-    "status": 200,
-    "contentType": "application/json",
-    "charset": "UTF-8",
-    "body": "{\"timestamp\":1725967696,\"rates\":{\"EUR\":1,\"GBP\":0.842772,\"KZT\":527.025041,\"USD\":1.103546}}"
+  "timestamp":1725967696,
+  "rates":{
+    "EUR":1,
+    "GBP":0.842772,
+    "KZT":527.025041,
+    "USD":1.103546
+  }
 }' | jq
   % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
                                  Dload  Upload   Total   Spent    Left  Speed
@@ -110,14 +112,7 @@ $ curl -X POST 'http://localhost:3333/v1/new' \
 And the second simulate an internal server error from the external API service:
 
 ```bash
-$ curl -X POST 'http://localhost:3333/v1/new' \
---header 'Content-Type: application/json' \
---data '{
-    "Name": "Exchange rates - Internal Server Error",
-    "status": 500,
-    "contentType": "application/json",
-    "charset": "UTF-8"
-}' | jq
+$ curl -X POST 'http://localhost:3333/v1/new?status=500&contentType=application%2Fjson&charset=UTF-8&domain=github.com%2Fjoakim-ribier&project=mockapic' | jq
   % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
                                  Dload  Upload   Total   Spent    Left  Speed
 100   408  100    48  100   360  13892   101k --:--:-- --:--:-- --:--:--  132k
@@ -132,6 +127,10 @@ $ curl -GET 'http://localhost:3333/v1/c1403100-3aa0-484f-8e0f-f2c1db80f371' | jq
   % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
                                  Dload  Upload   Total   Spent    Left  Speed
 100    89  100    89    0     0   1226      0 --:--:-- --:--:-- --:--:--  1236
+< HTTP/1.1 200 OK
+< Content-Type: application/json; charset=UTF-8
+< Domain: github.com/joakim-ribier
+< Project: mockapic
 {
   "timestamp": 1725967696,
   "rates": {
@@ -150,6 +149,8 @@ $ curl -v -GET 'http://localhost:3333/v1/79090265-a1af-47ec-a177-88668582ce28'
 * Request completely sent off
 < HTTP/1.1 500 Internal Server Error
 < Content-Type: application/json; charset=UTF-8
+< Domain: github.com/joakim-ribier
+< Project: mockapic
 ```
 
 For more examples, please find for a specific language the use case of how to use `Mockapic` in your implementation:
@@ -183,23 +184,13 @@ List APIs available
 | GET    | /static/status-codes                  | Get allowed status codes
 | GET    | [/v1/{uuid}](#get-mocked-request)     | Get a mocked request
 | GET    | [/v1/list](#list-requests)            | Get the list of all mocked requests
-| POST   | [/v1/add](#create-new-mocked-request) | Create a new mocked request
+| POST   | [/v1/new](#create-new-mocked-request) | Create a new mocked request
 
 #### Create New Mocked Request
 
 ```bash
-$ curl -X POST --location '~/v1/new' \
---header 'Content-Type: application/json' \
---data '{
-    "status": 200,
-    "contentType": "text/plain",
-    "charset": "UTF-8",
-    "body": "Hello World",
-    "headers": {
-        "x-language": "golang",
-        "x-host": "https://github.com/joakim-ribier/mockapic"
-    }
-}' | jq
+$ curl -X POST '~/v1/new?status={status}&contentType={contentType}&charset={charset}&{header1}={header1}&{header2}={header2}' \
+--data 'Hello World' | jq
 {
   "uuid": "{uuid}"
 }
@@ -207,7 +198,6 @@ $ curl -X POST --location '~/v1/new' \
 
 | Field       | Required | Value
 | ---         | ---      | ---
-| name        |          | Set a name to the request
 | status      | [x]      | Code HTTP (`200`, `204`, `404`, ...)
 | contentType | [x]      | Content Type (`application/json`, `text/plain`...)
 | charset     | [x]      | Charset: `UTF-8`, `UTF-16` or `ISO-8859-1`
@@ -217,38 +207,30 @@ $ curl -X POST --location '~/v1/new' \
 #### Get Mocked Request
 
 ```bash
-$ curl -v -X GET --location '~/v1/{uuid}?delay=100ms'
-> ...
-< HTTP/1.1 200 OK
-< Content-Type: text/plain; charset=UTF-8
-< X-Host: https://github.com/joakim-ribier/mockapic
-< X-Language: golang
-Hello World
+$ curl -X GET '~/v1/{uuid}?delay=100ms'
 ```
 
 | Field       | Required | Value
 | ---         | ---      | ---
 | {uuid}      | [x]      | Request ID returned by the POST API
-| delay       |          | Parameter to the URL to delay the response. Maximum delay: `60s`
+| delay       |          | Parameter to the URL to delay the response - Maximum delay: `60s`
 
 #### List requests
 
 ```bash
-$ curl -X GET --location '~/v1/list' | jq
+$ curl -X GET '~/v1/list' | jq
 [
   {
-    "Name": "200 - Ok",
-    "UUID": "03e122b3-42d7-41bd-92ca-35b93ea38c4e",
+    "UUID": "{uuid}",
     "CreatedAt": "1970-01-01 00:00:01",
-    "Status": 200,
-    "ContentType": "application/json"
+    "Status": {status},
+    "ContentType": "{contentType}"
   },
   {
-    "Name": "409 - Conflict",
-    "UUID": "051d6a25-33ea-49fe-86a7-07648489e750",
+    "UUID": "{uuid}",
     "CreatedAt": "1970-01-01 00:00:01",
-    "Status": 409,
-    "ContentType": "application/json"
+    "Status": {status},
+    "ContentType": "{contentType}"
   },
   ...
 ```

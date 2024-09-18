@@ -23,5 +23,8 @@ go.work.sum
 
 .DS_Store
 cmd/httpserver/httpserver
+cmd/httpserver/application.log
+cmd/httpserver/remote-addr.json
+cmd/httpserver/requests/
 cert/mockapic*
 mockapic
