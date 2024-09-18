@@ -282,7 +282,16 @@ func (s HTTPServer) addNewMock(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(200)
-	w.Write([]byte(fmt.Sprintf(`{"uuid": "%s"}`, *newUUID)))
+	w.Write([]byte(fmt.Sprintf(`{"uuid": "%s", "_links": {"self": "%s"}}`,
+		*newUUID, s.getProtocol(r)+"://"+r.Host+"/v1/"+*newUUID)))
+}
+
+func (s HTTPServer) getProtocol(r *http.Request) string {
+	protocol := "https"
+	if r.TLS == nil {
+		protocol = "http"
+	}
+	return protocol
 }
 
 func (s HTTPServer) findRemoteAddr(data string) string {
