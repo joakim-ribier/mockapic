@@ -12,9 +12,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/joakim-ribier/go-utils/pkg/httpsutil"
-	"github.com/joakim-ribier/go-utils/pkg/jsonsutil"
+	"github.com/joakim-ribier/go-utils/pkg/iosutil"
 	"github.com/joakim-ribier/go-utils/pkg/logsutil"
 	"github.com/joakim-ribier/go-utils/pkg/stringsutil"
 	"github.com/joakim-ribier/mockapic/internal"
@@ -47,14 +46,19 @@ func (m *MockerTest) New(reqParams map[string][]string, body []byte) (*string, e
 	}
 
 	mockedRequest := &internal.MockedRequest{
-		Status:      stringsutil.Int(reqParams["status"][0], -1),
-		ContentType: reqParams["contentType"][0],
-		Charset:     reqParams["charset"][0],
-		Body:        body,
+		MockedRequestLight: internal.MockedRequestLight{
+			MockedRequestHeader: internal.MockedRequestHeader{
+				Status:      stringsutil.Int(reqParams["status"][0], -1),
+				ContentType: reqParams["contentType"][0],
+				Charset:     reqParams["charset"][0],
+				Headers:     map[string]string{},
+			},
+		},
+		Body64: body,
 	}
 
 	m.mockResponse = mockedRequest
-	var r string = "OK"
+	var r string = "{id}"
 	return &r, nil
 }
 
@@ -116,7 +120,7 @@ func TestListenSSL(t *testing.T) {
 	internal.MOCKAPIC_CERT_FILENAME = "example.crt"
 	internal.MOCKAPIC_PEM_FILENAME = "example.key"
 
-	httpServer := NewHTTPServer("3333", true, "../../cert", workingDirectory, &MockerTest{}, *logger)
+	httpServer := NewHTTPServer("3333", true, "cert", workingDirectory, &MockerTest{}, *logger)
 
 	go func() {
 		err := httpServer.Listen()
@@ -148,7 +152,7 @@ func TestListenSSL(t *testing.T) {
 // TestRootEndpoint calls HTTPServer.home(http.ResponseWriter, *http.Request),
 // checking for a valid return value.
 func TestRootEndpoint(t *testing.T) {
-	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req := httptest.NewRequest(http.MethodGet, "http://localhost:3333/", nil)
 	w := httptest.NewRecorder()
 
 	NewHTTPServer("{port}", false, "", workingDirectory, &MockerTest{}, *logger).home(w, req)
@@ -166,7 +170,7 @@ func TestRootEndpoint(t *testing.T) {
 // TestGetContentTypesEndpoint calls HTTPServer.getContentTypes(http.ResponseWriter, *http.Request),
 // checking for a valid return value.
 func TestGetContentTypesEndpoint(t *testing.T) {
-	req := httptest.NewRequest(http.MethodGet, "/static/content-types", nil)
+	req := httptest.NewRequest(http.MethodGet, "http://localhost:3333/static/content-types", nil)
 	w := httptest.NewRecorder()
 
 	NewHTTPServer("{port}", false, "", workingDirectory, &MockerTest{}, *logger).getContentTypes(w, req)
@@ -184,7 +188,7 @@ func TestGetContentTypesEndpoint(t *testing.T) {
 // TestGetCharsetsEndpoint calls HTTPServer.getCharsets(http.ResponseWriter, *http.Request),
 // checking for a valid return value.
 func TestGetCharsetsEndpoint(t *testing.T) {
-	req := httptest.NewRequest(http.MethodGet, "/static/charsets", nil)
+	req := httptest.NewRequest(http.MethodGet, "http://localhost:3333/static/charsets", nil)
 	w := httptest.NewRecorder()
 
 	NewHTTPServer("{port}", false, "", workingDirectory, &MockerTest{}, *logger).getCharsets(w, req)
@@ -202,7 +206,7 @@ func TestGetCharsetsEndpoint(t *testing.T) {
 // TestGetStatusCodesEndpoint calls HTTPServer.getStatusCodes(http.ResponseWriter, *http.Request),
 // checking for a valid return value.
 func TestGetStatusCodesEndpoint(t *testing.T) {
-	req := httptest.NewRequest(http.MethodGet, "/static/content-types", nil)
+	req := httptest.NewRequest(http.MethodGet, "http://localhost:3333/static/content-types", nil)
 	w := httptest.NewRecorder()
 
 	NewHTTPServer("{port}", false, "", workingDirectory, &MockerTest{}, *logger).getStatusCodes(w, req)
@@ -214,30 +218,16 @@ func TestGetStatusCodesEndpoint(t *testing.T) {
 }
 
 // ##
-// #### ~/v1/{uuid} endpoint
+// #### ~/v1/{id} endpoint
 // ##
 
-// TestFindMockResponseEndpointWithInvalidUUID calls HTTPServer.findMock(http.ResponseWriter, *http.Request),
+// TestGetMockedRequestEndpointIdNotFound calls HTTPServer.getMockedRequest(http.ResponseWriter, *http.Request),
 // checking for a valid return value.
-func TestFindMockResponseEndpointWithInvalidUUID(t *testing.T) {
-	req := httptest.NewRequest(http.MethodGet, "/v1/wrong-uuid", nil)
+func TestGetMockedRequestEndpointIdNotFound(t *testing.T) {
+	req := httptest.NewRequest(http.MethodGet, "http://localhost:3333/v1/{id-not-found}", nil)
 	w := httptest.NewRecorder()
 
-	NewHTTPServer("{port}", false, "", workingDirectory, &MockerTest{}, *logger).findMock(w, req)
-
-	res, body := geResultResponse(w, t)
-	if res.Status != "409 Conflict" || string(body) != `{"message": "invalid UUID length: 10"}` {
-		t.Fatalf(`result: {%v} but expected {%v}`, res, "409")
-	}
-}
-
-// TestFindMockResponseEndpointUUIDNotFound calls HTTPServer.findMock(http.ResponseWriter, *http.Request),
-// checking for a valid return value.
-func TestFindMockResponseEndpointUUIDNotFound(t *testing.T) {
-	req := httptest.NewRequest(http.MethodGet, "/v1/"+uuid.NewString(), nil)
-	w := httptest.NewRecorder()
-
-	NewHTTPServer("{port}", false, "", workingDirectory, &MockerTest{}, *logger).findMock(w, req)
+	NewHTTPServer("{port}", false, "", workingDirectory, &MockerTest{}, *logger).getMockedRequest(w, req)
 
 	res, _ := geResultResponse(w, t)
 	if res.Status != "404 Not Found" {
@@ -245,25 +235,83 @@ func TestFindMockResponseEndpointUUIDNotFound(t *testing.T) {
 	}
 }
 
-// TestFindMockResponseEndpoint calls HTTPServer.findMock(http.ResponseWriter, *http.Request),
+// TestGetMockedRequestEndpoint calls HTTPServer.getMockedRequest(http.ResponseWriter, *http.Request),
 // checking for a valid return value.
-func TestFindMockResponseEndpoint(t *testing.T) {
-	req := httptest.NewRequest(http.MethodGet, "/v1/"+uuid.NewString(), nil)
+func TestGetMockedRequestEndpoint(t *testing.T) {
+	req := httptest.NewRequest(http.MethodGet, "http://localhost:3333/v1/{id}", nil)
 	w := httptest.NewRecorder()
 
 	mocker := &MockerTest{
 		mockResponse: &internal.MockedRequest{
-			Status:      200,
-			ContentType: "text/plain",
-			Charset:     "UTF-8",
-			Body:        []byte("Hello World"),
+			MockedRequestLight: internal.MockedRequestLight{
+				MockedRequestHeader: internal.MockedRequestHeader{
+					Status:      200,
+					ContentType: "text/plain",
+					Charset:     "UTF-8",
+					Headers:     map[string]string{},
+				},
+			},
+			Body: "Hello World",
 		},
 	}
-	NewHTTPServer("{port}", false, "", workingDirectory, mocker, *logger).findMock(w, req)
+
+	NewHTTPServer("{port}", false, "", workingDirectory, mocker, *logger).getMockedRequest(w, req)
 
 	res, _ := geResultResponse(w, t)
 	if res.Status != "200 OK" {
 		t.Fatalf(`result: {%v} but expected {%v}`, res, mocker)
+	}
+}
+
+// TestGetMockedRequestEndpointWithBadRequestURI calls HTTPServer.getMockedRequest(http.ResponseWriter, *http.Request),
+// checking for a valid return value.
+func TestGetMockedRequestEndpointWithBadRequestURI(t *testing.T) {
+	req := httptest.NewRequest(http.MethodGet, "http://localhost:3333/v1/{id}", nil)
+	w := httptest.NewRecorder()
+
+	mocker := &MockerTest{}
+
+	req.RequestURI = "{bad request uri}"
+	NewHTTPServer("{port}", false, "", workingDirectory, mocker, *logger).getMockedRequest(w, req)
+
+	res, _ := geResultResponse(w, t)
+	if res.Status != "409 Conflict" {
+		t.Fatalf(`result: {%v} but expected {%v}`, res, mocker)
+	}
+}
+
+// ##
+// #### ~/v1/raw/{id} endpoint
+// ##
+
+// TestGetMockedRequestRawEndpoint calls HTTPServer.getMockedRequestRaw(http.ResponseWriter, *http.Request),
+// checking for a valid return value.
+func TestGetMockedRequestRawEndpoint(t *testing.T) {
+	req := httptest.NewRequest(http.MethodGet, "http://localhost:3333/v1/raw/{id}", nil)
+	w := httptest.NewRecorder()
+
+	mocker := &MockerTest{
+		mockResponse: &internal.MockedRequest{
+			MockedRequestLight: internal.MockedRequestLight{
+				MockedRequestHeader: internal.MockedRequestHeader{
+					Status:      200,
+					ContentType: "text/plain",
+					Charset:     "UTF-8",
+					Headers:     map[string]string{"x-language": "golang"},
+				},
+			},
+			Body64: []byte("Hello World"),
+		},
+	}
+
+	NewHTTPServer("{port}", false, "", workingDirectory, mocker, *logger).getMockedRequestRaw(w, req)
+
+	res, data := geResultResponse(w, t)
+
+	if res.Status != "200 OK" ||
+		string(data) != `{"status":200,"contentType":"text/plain","charset":"UTF-8","headers":{"x-language":"golang"},"body":"Hello World","body64":"SGVsbG8gV29ybGQ="}` {
+
+		t.Fatalf(`result: {%v} but expected {%v}`, res, mocker.mockResponse)
 	}
 }
 
@@ -274,13 +322,13 @@ func TestFindMockResponseEndpoint(t *testing.T) {
 // TestListEndpointWithError calls HTTPServer.list(http.ResponseWriter, *http.Request),
 // checking for a valid return value.
 func TestListEndpointWithError(t *testing.T) {
-	req := httptest.NewRequest(http.MethodGet, "/v1/list", nil)
+	req := httptest.NewRequest(http.MethodGet, "http://localhost:3333/v1/list", nil)
 	w := httptest.NewRecorder()
 
 	NewHTTPServer("{port}", false, "", workingDirectory, &MockerTest{}, *logger).list(w, req)
 
 	res, body := geResultResponse(w, t)
-	if res.Status != "409 Conflict" || string(body) != `{"message": "error to list mocked responses"}` {
+	if res.Status != "500 Internal Server Error" || string(body) != `{"message": "error to list mocked responses"}` {
 		t.Fatalf(`result: {%v} but expected {%v}`, res, "409")
 	}
 }
@@ -288,31 +336,56 @@ func TestListEndpointWithError(t *testing.T) {
 // TestListEndpoint calls HTTPServer.list(http.ResponseWriter, *http.Request),
 // checking for a valid return value.
 func TestListEndpoint(t *testing.T) {
-	req := httptest.NewRequest(http.MethodGet, "/v1/list", nil)
+	req := httptest.NewRequest(http.MethodGet, "http://localhost:3333/v1/list", nil)
 	w := httptest.NewRecorder()
 
 	mocker := &MockerTest{
 		mockResponseLights: []internal.MockedRequestLight{
 			{
-				UUID:        uuid.NewString(),
-				Status:      200,
-				ContentType: "text/plain",
-			}, {
-				UUID:   uuid.NewString(),
-				Status: 404,
+				MockedRequestHeader: internal.MockedRequestHeader{
+					Status:      200,
+					ContentType: "text/plain",
+					Charset:     "UTF-8",
+					Headers:     map[string]string{"x-language": "golang"},
+				},
+				Id: "{id-200}",
+			},
+			{
+				MockedRequestHeader: internal.MockedRequestHeader{
+					Status:      404,
+					ContentType: "application/json",
+					Charset:     "UTF-8",
+					Headers:     map[string]string{"x-language": "golang"},
+				},
+				Id: "{id-404}",
 			},
 		},
 	}
 	NewHTTPServer("{port}", false, "", workingDirectory, mocker, *logger).list(w, req)
 
 	res, body := geResultResponse(w, t)
-	s, err := jsonsutil.Unmarshal[[]internal.MockedRequestLight](body)
-	if err != nil {
-		t.Errorf("Error: %v", err)
-	}
 
-	if res.Status != "200 OK" || len(s) != 2 {
+	expected := `[{"id":"{id-200}","status":200,"contentType":"text/plain","charset":"UTF-8","headers":{"x-language":"golang"},"_links":{"raw":"http://localhost:3333/v1/raw/{id-200}","self":"http://localhost:3333/v1/{id-200}"}},{"id":"{id-404}","status":404,"contentType":"application/json","charset":"UTF-8","headers":{"x-language":"golang"},"_links":{"raw":"http://localhost:3333/v1/raw/{id-404}","self":"http://localhost:3333/v1/{id-404}"}}]`
+	if res.Status != "200 OK" || string(body) != expected {
 		t.Fatalf(`result: {%v} but expected {%v}`, res, mocker)
+	}
+}
+
+// TestListEndpointReturnsEmptyNilInsteadOfNull calls HTTPServer.list(http.ResponseWriter, *http.Request),
+// checking for a valid return value.
+func TestListEndpointReturnsEmptyNilInsteadOfNull(t *testing.T) {
+	req := httptest.NewRequest(http.MethodGet, "http://localhost:3333/v1/list", nil)
+	w := httptest.NewRecorder()
+
+	mocker := &MockerTest{
+		mockResponseLights: []internal.MockedRequestLight{},
+	}
+	NewHTTPServer("{port}", false, "", workingDirectory, mocker, *logger).list(w, req)
+
+	res, body := geResultResponse(w, t)
+
+	if res.Status != "200 OK" || string(body) != "[]" {
+		t.Fatalf(`result: {%v} but expected {%v}`, string(body), "[]")
 	}
 }
 
@@ -324,26 +397,39 @@ func TestListEndpoint(t *testing.T) {
 // checking for a valid return value.
 func TestAddNewEndpoint(t *testing.T) {
 	internal.MOCKAPIC_REQ_MAX_LIMIT = 100
+	err := iosutil.Write([]byte(``), workingDirectory+"/remote-addr.json")
+	if err != nil {
+		t.Errorf("Error: %v", err)
+	}
 
-	URL := "/v1/new?status=200&contentType=text/plain&charset=UTF-8"
+	URL := "http://localhost:3333/v1/new?status=200&contentType=text/plain&charset=UTF-8"
 	req := httptest.NewRequest(http.MethodPost, URL, strings.NewReader("Hello World"))
 	w := httptest.NewRecorder()
 
 	mocker := &MockerTest{mockResponse: nil, clean: false}
-	NewHTTPServer("{port}", false, "", workingDirectory, mocker, *logger).addNewMock(w, req)
+	s := NewHTTPServer("{port}", false, "", workingDirectory, mocker, *logger)
+
+	s.addNewMock(w, req)
 
 	res, body := geResultResponse(w, t)
 
-	expected := &internal.MockedRequest{
-		Status:      200,
-		ContentType: "text/plain",
-		Charset:     "UTF-8",
-		Body:        []byte("Hello World"),
+	expected := internal.MockedRequest{
+		MockedRequestLight: internal.MockedRequestLight{
+			MockedRequestHeader: internal.MockedRequestHeader{
+				Status:      200,
+				ContentType: "text/plain",
+				Charset:     "UTF-8",
+				Headers:     map[string]string{},
+			},
+		},
+		Body64: []byte("Hello World"),
 	}
+
 	if res.Status != "200 OK" ||
-		!strings.Contains(string(body), `{"uuid":`) ||
-		!mocker.mockResponse.Equals(*expected) ||
-		!mocker.clean {
+		string(body) != `{"_links":{"raw":"http://localhost:3333/v1/raw/{id}","self":"http://localhost:3333/v1/{id}"},"id":"{id}"}` ||
+		!mocker.mockResponse.Equals(expected) ||
+		!mocker.clean ||
+		len(s.getRemoteAddr()) != 1 {
 		t.Fatalf(`result: {%v} but expected {%v}`, res, expected)
 	}
 }
@@ -358,9 +444,8 @@ func TestAddNewEndpointWithBadRequest(t *testing.T) {
 	NewHTTPServer("{port}", false, "", workingDirectory, mocker, *logger).addNewMock(w, req)
 
 	res, body := geResultResponse(w, t)
-	t.Log(string(body))
 
-	if res.Status != "409 Conflict" ||
+	if res.Status != "500 Internal Server Error" ||
 		string(body) != `{"message": "error to add new mocked response"}` {
 		t.Fatalf(`result: {%v} but expected {%v}`, res, "409")
 	}
@@ -382,6 +467,56 @@ func TestFindRemoteAddr(t *testing.T) {
 	}
 	if r := httpServer.findRemoteAddr("127.0.0.1"); r != "127.0.0.1" {
 		t.Fatalf(`result: {%v} but expected {%v}`, r, "127.0.0.1")
+	}
+}
+
+// TestGetRemoteAddr calls HTTPServer.getRemoteAddr(),
+// checking for a valid return value.
+func TestGetRemoteAddr(t *testing.T) {
+	err := iosutil.Write([]byte(`{"127.0.0.1":6,"192.168.0.1":10}`), workingDirectory+"/remote-addr.json")
+	if err != nil {
+		t.Errorf("Error: %v", err)
+	}
+
+	httpServer := NewHTTPServer("{port}", false, "", workingDirectory, &MockerTest{}, *logger)
+
+	r := httpServer.getRemoteAddr()
+
+	if len(r) != 2 || r["127.0.0.1"] != 6 || r["192.168.0.1"] != 10 {
+		t.Fatalf(`result: {%v} but expected {%v}`, r, "empty result")
+	}
+}
+
+// TestGetRemoteAddrWithBadContent calls HTTPServer.getRemoteAddr(),
+// checking for a valid return value.
+func TestGetRemoteAddrWithBadContent(t *testing.T) {
+	err := iosutil.Write([]byte("bad-content"), workingDirectory+"/remote-addr.json")
+	if err != nil {
+		t.Errorf("Error: %v", err)
+	}
+
+	httpServer := NewHTTPServer("{port}", false, "", workingDirectory, &MockerTest{}, *logger)
+
+	if r := httpServer.getRemoteAddr(); len(r) != 0 {
+		t.Fatalf(`result: {%v} but expected {%v}`, r, "empty result")
+	}
+}
+
+// TestCountRemoteAddr calls HTTPServer.countRemoteAddr(),
+// checking for a valid return value.
+func TestCountRemoteAddr(t *testing.T) {
+	err := iosutil.Write([]byte(`{"192.1.34.1":6}`), workingDirectory+"/remote-addr.json")
+	if err != nil {
+		t.Errorf("Error: %v", err)
+	}
+
+	httpServer := NewHTTPServer("{port}", false, "", workingDirectory, &MockerTest{}, *logger)
+
+	httpServer.countRemoteAddr("92.1.34.1")
+	httpServer.countRemoteAddr("192.1.34.1")
+
+	if r := httpServer.getRemoteAddr(); len(r) != 2 || r["92.1.34.1"] != 1 || r["192.1.34.1"] != 7 {
+		t.Fatalf(`result: {%v} but expected {%v}`, r, "[92.1.34.1:1,192.1.34.1:7]")
 	}
 }
 

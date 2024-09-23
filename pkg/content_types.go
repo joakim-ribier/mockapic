@@ -1,5 +1,11 @@
 package pkg
 
+import (
+	"strings"
+
+	"github.com/joakim-ribier/go-utils/pkg/slicesutil"
+)
+
 var CONTENT_TYPES = []string{
 	"application/json",
 	"application/x-www-form-urlencoded",
@@ -16,6 +22,10 @@ var CONTENT_TYPES = []string{
 	"text/plain",
 	"text/xml",
 }
+
+var IS_DISPLAY_CONTENT = slicesutil.FilterT(CONTENT_TYPES, func(arg string) bool {
+	return arg == "application/json" || arg == "application/xml" || strings.Contains(arg, "text/")
+})
 
 var CHARSET = []string{
 	"UTF-8",

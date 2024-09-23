@@ -6,6 +6,8 @@ import (
 	"os"
 
 	"github.com/joakim-ribier/go-utils/pkg/genericsutil"
+	"github.com/joakim-ribier/go-utils/pkg/iosutil"
+	"github.com/joakim-ribier/go-utils/pkg/jsonsutil"
 	"github.com/joakim-ribier/go-utils/pkg/logsutil"
 	"github.com/joakim-ribier/go-utils/pkg/slicesutil"
 	"github.com/joakim-ribier/go-utils/pkg/stringsutil"
@@ -35,9 +37,7 @@ func main() {
 	if arg, ok := args["--ssl"]; ok {
 		internal.MOCKAPIC_SSL = stringsutil.Bool(arg)
 		if internal.MOCKAPIC_SSL && internal.MOCKAPIC_CERT_DIRECTORY == "" {
-			internal.MOCKAPIC_CERT_FILENAME = "example.crt"
-			internal.MOCKAPIC_PEM_FILENAME = "example.key"
-			internal.MOCKAPIC_CERT_DIRECTORY = "../../cert"
+			internal.MOCKAPIC_CERT_DIRECTORY = internal.MOCKAPIC_HOME
 		}
 	}
 
@@ -53,9 +53,20 @@ func main() {
 		"req_max", internal.MOCKAPIC_REQ_MAX_LIMIT,
 	)
 
-	err = os.MkdirAll(internal.MOCKAPIC_HOME+"/requests", os.ModePerm)
+	err = os.MkdirAll(internal.MOCKAPIC_REQUEST(), os.ModePerm)
 	if err != nil {
 		log.Fatalf("%v", err)
+	}
+
+	predefinedMockedRequests := []internal.PredefinedMockedRequest{}
+	data, err := iosutil.Load(internal.MOCKAPIC_REQ_PREDEFINED_FILE())
+	if err != nil {
+		logger.Error(err, fmt.Sprintf("file {%s} not found", internal.MOCKAPIC_REQ_PREDEFINED_FILE()))
+	} else {
+		predefinedMockedRequests, err = jsonsutil.Unmarshal[[]internal.PredefinedMockedRequest](data)
+		if err != nil {
+			logger.Error(err, fmt.Sprintf("file {%s} cannot be parsed", internal.MOCKAPIC_REQ_PREDEFINED_FILE()))
+		}
 	}
 
 	httpServer := server.NewHTTPServer(
@@ -63,7 +74,7 @@ func main() {
 		internal.MOCKAPIC_SSL,
 		internal.MOCKAPIC_CERT_DIRECTORY,
 		internal.MOCKAPIC_HOME,
-		internal.NewMock(internal.MOCKAPIC_HOME+"/requests", *logger),
+		internal.NewMock(internal.MOCKAPIC_REQUEST(), predefinedMockedRequests, *logger),
 		*logger)
 
 	fmt.Print(internal.LOGO)
