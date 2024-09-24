@@ -61,8 +61,8 @@ func (r Response) writeHeaders(mock internal.MockedRequest) Response {
 }
 
 func (r Response) writeBody(mock internal.MockedRequest) Response {
-	if len(mock.Body) > 0 {
-		r.ResponseWriter.Write([]byte(mock.Body))
+	if len(mock.Body64) > 0 {
+		r.ResponseWriter.Write(mock.Body64)
 	}
 	return r
 }

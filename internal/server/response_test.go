@@ -32,11 +32,15 @@ func (r *ResponseWriterTest) WriteHeader(d int) {
 // checking for a valid return value.
 func TestWrite(t *testing.T) {
 	mocked := internal.MockedRequest{
-		Status:      200,
-		ContentType: "text/plain",
-		Charset:     "UTF-8",
-		Body:        []byte("Hello World"),
-		Headers:     map[string]string{"x-language": "golang"},
+		MockedRequestLight: internal.MockedRequestLight{
+			MockedRequestHeader: internal.MockedRequestHeader{
+				Status:      200,
+				ContentType: "text/plain",
+				Charset:     "UTF-8",
+				Headers:     map[string]string{"x-language": "golang"},
+			},
+		},
+		Body64: []byte("Hello World"),
 	}
 
 	r := NewResponse(&ResponseWriterTest{
@@ -63,11 +67,11 @@ func TestWrite(t *testing.T) {
 // checking for a valid return value.
 func TestWriteWithMaxDelay(t *testing.T) {
 	mocked := internal.MockedRequest{
-		Status:      200,
-		ContentType: "text/plain",
-		Charset:     "UTF-8",
-		Body:        []byte("Hello World"),
-		Headers:     map[string]string{"x-language": "golang"},
+		MockedRequestLight: internal.MockedRequestLight{
+			MockedRequestHeader: internal.MockedRequestHeader{
+				Status: 500,
+			},
+		},
 	}
 
 	r := NewResponse(&ResponseWriterTest{

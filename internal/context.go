@@ -17,6 +17,13 @@ const LOGO = `
 `
 
 var MOCKAPIC_HOME = os.Getenv("MOCKAPIC_HOME")
+var MOCKAPIC_REQUEST = func() string {
+	return MOCKAPIC_HOME + "/requests"
+}
+var MOCKAPIC_REQ_PREDEFINED_FILE = func() string {
+	return MOCKAPIC_REQUEST() + "/mockapic.json"
+}
+
 var MOCKAPIC_REQ_MAX_LIMIT = stringsutil.Int(os.Getenv("MOCKAPIC_REQ_MAX_LIMIT"), -1)
 
 var MOCKAPIC_PORT = os.Getenv("MOCKAPIC_PORT")

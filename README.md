@@ -37,7 +37,7 @@ Use it as a service or directly with Docker.
 $ go install -v github.com/joakim-ribier/mockapic/cmd/httpserver@latest
 
 # use the service
-$ httpserver --port 3333 --home /home/{user}/app/mockapic &
+$ httpserver --port 3333 --home /home/{user}/app/mockapic
 ```
 
 ### As a container
@@ -47,7 +47,7 @@ $ httpserver --port 3333 --home /home/{user}/app/mockapic &
 $ docker pull joakimribier/mockapic:latest
 
 # run the image
-$ docker run -it --restart unless-stopped -p 3333:3333 -e MOCKAPIC_PORT=3333 -v /home/{user}/app/mockapic:/usr/src/app/mockapic/data &
+$ docker run -it --rm -p 3333:3333 -e MOCKAPIC_PORT=3333 joakimribier/mockapic
 ```
 
 ## How it works
@@ -64,16 +64,16 @@ Parameters of the service
 
 | Option    | Env                     | Value                       | Default          | Description |
 | ---       | ---                     | ---                         | ---              | ---
-| --home    | MOCKAPIC_HOME           | /home/{user}/app/mockapic   | .                | Define the working directory<br>The folder must contain a `/requests` subfolder for the mocked requests
+| --home    | MOCKAPIC_HOME           | /usr/app/mockapic           | .                | Define the working directory
 | --port    | MOCKAPIC_PORT           | 3333                        | 3333             | Define a specific port
 | --req_max | MOCKAPIC_REQ_MAX_LIMIT  | 100                         | -1 (`unlimited`) | Define the max limit of the mocked requests
 | --ssl     | MOCKAPIC_SSL            | true                        | false            | Enable SSL/Tls HTTP server (need to provide certificate)
-| --cert    | MOCKAPIC_CERT           | /home/{user}/app/mockapic   | 3333             | Define the certificate directory to contain (`mockapic.cert` and `mockapic.key`)
+| --cert    | MOCKAPIC_CERT           | /usr/app/mockapic           | .                | Define the certificate directory which should contain (`mockapic.cert` and `mockapic.key`)
 
 1. Start `Mockapic`
 
 ```bash
-$ docker run -it -p 3333:3333 -e MOCKAPIC_PORT=3333 -v /home/{user}/app/mockapic:/usr/src/app/mockapic/data &
+$ docker run -it -p 3333:3333 -e MOCKAPIC_PORT=3333 mockapic &
     __  ___              __                  _
    /  |/  /____   _____ / /__ ____ _ ____   (_)_____
   / /|_/ // __ \ / ___// //_// __ '// __ \ / // ___/
@@ -104,8 +104,9 @@ $ curl -X POST 'http://localhost:3333/v1/new?status=200&contentType=application%
                                  Dload  Upload   Total   Spent    Left  Speed
 100   408  100    48  100   360  13892   101k --:--:-- --:--:-- --:--:--  132k
 {
-  "uuid": "c1403100-3aa0-484f-8e0f-f2c1db80f371",
+  "id": "c1403100-3aa0-484f-8e0f-f2c1db80f371",
   "_links": {
+    "raw": "http://localhost:3333/v1/raw/c1403100-3aa0-484f-8e0f-f2c1db80f371",
     "self": "http://localhost:3333/v1/c1403100-3aa0-484f-8e0f-f2c1db80f371"
   }
 }
@@ -119,14 +120,15 @@ $ curl -X POST 'http://localhost:3333/v1/new?status=500&contentType=application%
                                  Dload  Upload   Total   Spent    Left  Speed
 100   408  100    48  100   360  13892   101k --:--:-- --:--:-- --:--:--  132k
 {
-  "uuid": "79090265-a1af-47ec-a177-88668582ce28",
+  "id": "79090265-a1af-47ec-a177-88668582ce28",
   "_links": {
+    "raw": "http://localhost:3333/v1/raw/79090265-a1af-47ec-a177-88668582ce28",
     "self": "http://localhost:3333/v1/79090265-a1af-47ec-a177-88668582ce28"
   }
 }
 ```
 
-3. Use the `UUID` from the response to call the mocked URL
+3. Use the `id` from the response to call the mocked URL
 ```bash
 $ curl -GET 'http://localhost:3333/v1/c1403100-3aa0-484f-8e0f-f2c1db80f371' | jq
   % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
@@ -162,19 +164,27 @@ For more examples, please find for a specific language the use case of how to us
 
 * [`Golang`](https://github.com/joakim-ribier/mockapic-example-go)
 
+### Predefined requests
+
+If you don't want to create a new mocked requests every time, you can also version a mocked requests file and load it directly by the server on startup.
+
+The file must be in `{MOCKAPIC_HOME}/requests/mockapic.json` or directly mount to the right destination `-v /home/{user}/app/mockapic/mockapic.json:/usr/app/mockapic/requests/mockapic.json` using as a Docker container.
+
+See an example of [`mockapic.json`](/cmd/httpserver/requests/mockapic.json) file
+
 ### SSL/Tls
 
 Run the HTTP server in SSL/Tls (`https`) mode with certificate.
 
-* `--ssl` (or `$MOCKAPIC_SSL`) must be `true`
-* `--cert` (or `$MOCKAPIC_CERT`) must be contain a `mockapic.crt` and `mockapic.key` files
+* `--ssl` parameter or `$MOCKAPIC_SSL` environment must be `true`
+* `--cert` parameter or `$MOCKAPIC_CERT` environment must contain `mockapic.crt` and `mockapic.key` files
 
 ```bash
 $ ./httpserver \
   --home /home/{user}/app/mockapic \
   --port 3333 \
   --ssl true \
-  --cert {certificate-path-directory}
+  --cert /home/{user}/app/mockapic # by default --home directory
 ```
 
 ## APIs
@@ -187,7 +197,8 @@ List APIs available
 | GET    | /static/content-types                 | Get allowed content types
 | GET    | /static/charsets                      | Get allowed charsets
 | GET    | /static/status-codes                  | Get allowed status codes
-| GET    | [/v1/{uuid}](#get-mocked-request)     | Get a mocked request
+| GET    | [/v1/{id}](#get-mocked-request)       | Get a mocked request
+| GET    | [/v1/raw/{id}](#raw-mocked-request)   | Get a raw mocked request
 | GET    | [/v1/list](#list-requests)            | Get the list of all mocked requests
 | POST   | [/v1/new](#create-new-mocked-request) | Create a new mocked request
 
@@ -197,7 +208,11 @@ List APIs available
 $ curl -X POST '~/v1/new?status={status}&contentType={contentType}&charset={charset}&{header1}={header1}&{header2}={header2}' \
 --data 'Hello World' | jq
 {
-  "uuid": "{uuid}"
+  "id": "{id}",
+  "_links": {
+    "raw": "{host}/v1/raw/{id}",
+    "self": "{host}/v1/{id}"
+  }
 }
 ```
 
@@ -212,13 +227,33 @@ $ curl -X POST '~/v1/new?status={status}&contentType={contentType}&charset={char
 #### Get Mocked Request
 
 ```bash
-$ curl -X GET '~/v1/{uuid}?delay=100ms'
+$ curl -X GET '~/v1/{id}?delay=100ms'
 ```
 
 | Field       | Required | Value
 | ---         | ---      | ---
-| {uuid}      | [x]      | Request ID returned by the POST API
+| {id}        | [x]      | Request identifier returned by the POST API
 | delay       |          | Parameter to the URL to delay the response - Maximum delay: `60s`
+
+#### Raw Mocked Request
+
+```bash
+$ curl -X GET '~/v1/raw/{id}'
+
+{
+  "id": "{id}",
+  "createdAt": "1970-01-01 00:00:01",
+  "status": {status},
+  "contentType": "{contentType}",
+  "charset": "UTF-8",
+  "headers": {
+    "domain": "github.com/joakim-ribier",
+    "project": "mockapic"
+  },
+  "body": "{raw}",
+  "body64": "{base64}"
+}
+```
 
 #### List requests
 
@@ -226,16 +261,34 @@ $ curl -X GET '~/v1/{uuid}?delay=100ms'
 $ curl -X GET '~/v1/list' | jq
 [
   {
-    "UUID": "{uuid}",
-    "CreatedAt": "1970-01-01 00:00:01",
-    "Status": {status},
-    "ContentType": "{contentType}"
+    "id": "{id}",
+    "createdAt": "1970-01-01 00:00:01",
+    "status": {status},
+    "contentType": "{contentType}",
+    "charset": "UTF-8",
+    "headers": {
+      "domain": "github.com/joakim-ribier",
+      "project": "mockapic"
+    },
+    "_links": {
+      "raw": "{host}/v1/raw/{id}",
+      "self": "{host}/v1/{id}"
+    }
   },
   {
-    "UUID": "{uuid}",
-    "CreatedAt": "1970-01-01 00:00:01",
-    "Status": {status},
-    "ContentType": "{contentType}"
+    "id": "{id}",
+    "createdAt": "1970-01-01 00:00:01",
+    "status": {status},
+    "contentType": "{contentType}",
+    "charset": "UTF-8",
+    "headers": {
+      "domain": "github.com/joakim-ribier",
+      "project": "mockapic"
+    },
+    "_links": {
+      "raw": "{host}/v1/raw/{id}",
+      "self": "{host}/v1/{id}"
+    }
   },
   ...
 ```
@@ -257,10 +310,13 @@ ok  	github.com/joakim-ribier/mockapic/internal/server	2.181s	coverage: 91.0% of
 # pull the last version
 $ docker pull joakimribier/mockapic:latest
 
-# run the docker image
-$ docker run -it --restart unless-stopped -p 3333:3333 -e MOCKAPIC_PORT=3333 -e MOCKAPIC_REQ_MAX_LIMIT=100 -e MOCKAPIC_SSL=true \
-  -v /home/{user}/app/mockapic:/usr/src/app/mockapic/data \
-  -v /home/{user}/app/mockapic:/usr/src/app/mockapic/cert:ro joakimribier/mockapic
+# run the docker image with parameters
+$ docker run -it --rm \
+    -p 3333:3333 -e MOCKAPIC_PORT=3333 \
+    -e MOCKAPIC_REQ_MAX_LIMIT=100 -e MOCKAPIC_SSL=true \
+    -v /home/{user}/app/mockapic:/usr/app/mockapic \
+    -v /home/{user}/app/mockapic/mockapic.json:/usr/app/mockapic/requests/mockapic.json \
+    joakimribier/mockapic
 ```
 
 ### Build
