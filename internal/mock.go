@@ -107,7 +107,7 @@ func get[T any](workingDirectory, mockId string, logger logsutil.Logger) (*T, er
 
 	mock, err := jsonsutil.Unmarshal[T](bytes)
 	if err != nil {
-		logger.Error(err, "error to unmarshal data", "mockId", mockId, "workingDirectory", workingDirectory, "data", bytes)
+		logger.Error(err, "error to unmarshal data", "mockId", mockId, "workingDirectory", workingDirectory)
 		return nil, err
 	}
 	return &mock, nil

@@ -168,9 +168,9 @@ For more examples, please find for a specific language the use case of how to us
 
 If you don't want to create a new mocked requests every time, you can also version a mocked requests file and load it directly by the server on startup.
 
-The file must be in `{MOCKAPIC_HOME}/requests/mockapic.json` or directly mount to the right destination `-v /home/{user}/app/mockapic/mockapic.json:/usr/app/mockapic/requests/mockapic.json` using as a Docker container.
+The file must be in `{MOCKAPIC_HOME}/mockapic.json` or directly mount to the right destination `-v /home/{user}/app/mockapic/mockapic.json:/usr/app/mockapic/mockapic.json` using as a Docker container.
 
-See an example of [`mockapic.json`](/cmd/httpserver/requests/mockapic.json) file
+See an example of [`mockapic.json`](/cmd/httpserver/mockapic.json) file
 
 ### SSL/Tls
 
@@ -315,7 +315,7 @@ $ docker run -it --rm \
     -p 3333:3333 -e MOCKAPIC_PORT=3333 \
     -e MOCKAPIC_REQ_MAX_LIMIT=100 -e MOCKAPIC_SSL=true \
     -v /home/{user}/app/mockapic:/usr/app/mockapic \
-    -v /home/{user}/app/mockapic/mockapic.json:/usr/app/mockapic/requests/mockapic.json \
+    -v /home/{user}/app/mockapic/mockapic.json:/usr/app/mockapic/mockapic.json \
     joakimribier/mockapic
 ```
 

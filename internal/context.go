@@ -21,7 +21,7 @@ var MOCKAPIC_REQUEST = func() string {
 	return MOCKAPIC_HOME + "/requests"
 }
 var MOCKAPIC_REQ_PREDEFINED_FILE = func() string {
-	return MOCKAPIC_REQUEST() + "/mockapic.json"
+	return MOCKAPIC_HOME + "/mockapic.json"
 }
 
 var MOCKAPIC_REQ_MAX_LIMIT = stringsutil.Int(os.Getenv("MOCKAPIC_REQ_MAX_LIMIT"), -1)

@@ -27,6 +27,6 @@ ENV MOCKAPIC_REQ_MAX_LIMIT=-1
 ENV MOCKAPIC_SSL=false
 
 # copy example requests file in the default home directory
-COPY cmd/httpserver/requests/mockapic.json /usr/app/mockapic/requests/
+COPY cmd/httpserver/mockapic.json /usr/app/mockapic/
 
 CMD ["./httpserver"]
