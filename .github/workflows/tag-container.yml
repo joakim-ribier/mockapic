@@ -1,23 +1,24 @@
-name: Build and push docker image to Docker Hub
+name: Publish new container image tag
 
 on:
-  workflow_run:
-    workflows: ['Build, test and push coverage']
-    types:
-      - completed
-    branches: ['main']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Define the tag version (x.x.x)'
+        required: true
+        type: string
 
 permissions:
+  contents: write
   packages: write
-  contents: read
   attestations: write
   id-token: write
 
 jobs:
-  run:
+  build_docker:
     uses: ./.github/workflows/build-and-push-container_reusable.yml
     with:
-      version: latest
+      version: ${{ inputs.version }}
     secrets:
       DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
       DOCKER_TOKEN: ${{ secrets.DOCKER_TOKEN }}

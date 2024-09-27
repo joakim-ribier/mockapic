@@ -1,0 +1,40 @@
+name: Publish binaries and tag Docker image
+
+on:
+  release:
+    types: [created]
+
+permissions:
+  contents: write
+  packages: write
+  attestations: write
+  id-token: write
+
+jobs:
+  make_release:
+    name: Release Go Binary
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        goos: [linux, darwin]
+        goarch: [amd64, arm64]
+    steps:
+    - uses: actions/checkout@v4
+    - uses: wangyoucao577/go-release-action@v1.51
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        goos: ${{ matrix.goos }}
+        goarch: ${{ matrix.goarch }}
+        goversion: 1.22.5
+        project_path: "./cmd/httpserver"
+        binary_name: "mockapic"
+        extra_files: LICENSE README.md
+  build_docker:
+    needs: make_release
+    uses: ./.github/workflows/build-and-push-container_reusable.yml
+    with:
+      version: ${{ github.event.release.tag_name }}
+    secrets:
+      DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+      DOCKER_TOKEN: ${{ secrets.DOCKER_TOKEN }}
+      MOCKAPIC_DISPATCH_EVENT: ${{ secrets.MOCKAPIC_DISPATCH_EVENT }}

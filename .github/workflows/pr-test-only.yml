@@ -5,7 +5,7 @@ on:
     branches: ['*']
 
 jobs:
-  run_pr:
+  run:
     uses: ./.github/workflows/build_test_and_coverage_reusable.yml
     with:
       coverage: false
