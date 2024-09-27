@@ -1,0 +1,37 @@
+name: Make a release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Define the release version (x.x.x)'
+        required: true
+        type: string
+  release:
+    types: [created]
+
+permissions:
+    contents: write
+    packages: write
+
+jobs:
+  make_release:
+    name: Release Go Binary
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        goos: [linux, darwin]
+        goarch: [amd64, arm64]
+    steps:
+    - uses: actions/checkout@v4
+    - uses: wangyoucao577/go-release-action@v1
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        goos: ${{ matrix.goos }}
+        goarch: ${{ matrix.goarch }}
+        extra_files: LICENSE README.md
+  build_docker:
+    needs: make_release
+    uses: ./.github/workflows/build-and-push-container_reusable.yml
+    with:
+      version: ${{ inputs.version }}
