@@ -348,12 +348,15 @@ $ docker push joakimribier/mockapic:latest
 
 ### Github action workflows *.yml
 
-|     | Name                                | Description
-| --- | ---                                 | ---
-|     | `build_test_and_coverage_reusable`  | Reusable workflow: build, execute test and push coverage (`on condition`)
-| #1  | `build-test-and-coverage`           | Calls the reusable workflow on `main` branch
-| #2  | `build-and-push-container`          | 1. Builds and pushes container on Docker Hub if the workflow `#1` is completed</br>2. Sends event to [joakim-ribier/go-utils](https://github.com/joakim-ribier/go-utils) to trigger action `trigger-from-event:build_and_test`
-| #3  | `pr-test-only.yml`                  | Calls the reusable workflow on `pull request` (without coverage)
+| Name | Description
+| ---  | ---
+| [Build test and coverage (reusable)](.github/workflows/build_test_and_coverage_reusable.yml) | It builds, executes tests and pushes coverage (`{input.coverage}`).
+| [Build and push docker image to Docker Hub (reusable)](.github/workflows/build-and-push-container_reusable.yml) | It builds and pushes a container image on specific version (`latest` or `{input.version}`).
+| [Build and test pull request](.github/workflows/pr-test-only.yml) | It calls `Build test and coverage (reusable)` workflow on all pull request without coverage.
+| [Build, test and push coverage](.github/workflows/build-test-and-coverage.yml) | It calls `Build test and coverage (reusable)` workflow on the `main` branch with coverage.
+| [Build and push docker image to Docker Hub](.github/workflows/build-and-push-container.yml) | It is launched after a `Build, test and push coverage` completed workflow on the `main` branch.
+| [Publish binaries and tag Docker image](.github/workflows/release.yml)  | It is launched after a release creation, it builds binaries and calls `Build and push docker image to Docker Hub (reusable)` on a specific release tag version.
+| [Publish new container image tag](.github/workflows/tag-container.yml)  | A manual workflow that calls `Build and push docker image to Docker Hub (reusable)` on a specific version.
 
 ## Demo
 
