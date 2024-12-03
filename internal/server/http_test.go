@@ -27,7 +27,7 @@ type MockerTest struct {
 }
 
 func (m *MockerTest) Get(mockId string) (*internal.MockedRequest, error) {
-	if m.mockResponse != nil {
+	if m.mockResponse != nil && m.mockResponse.Id == mockId {
 		return m.mockResponse, nil
 	}
 	return nil, errors.New("mockId does not exist")
@@ -40,13 +40,14 @@ func (m *MockerTest) List() ([]internal.MockedRequestLight, error) {
 	return nil, errors.New("error to list mocked responses")
 }
 
-func (m *MockerTest) New(reqParams map[string][]string, body []byte) (*string, error) {
+func (m *MockerTest) New(reqParams map[string][]string, body []byte) (*internal.MockedRequest, error) {
 	if len(reqParams["status"]) == 0 || len(reqParams["contentType"]) == 0 || len(reqParams["charset"]) == 0 {
 		return nil, errors.New("error to add new mocked response")
 	}
 
 	mockedRequest := &internal.MockedRequest{
 		MockedRequestLight: internal.MockedRequestLight{
+			Id: "{id}",
 			MockedRequestHeader: internal.MockedRequestHeader{
 				Status:      stringsutil.Int(reqParams["status"][0], -1),
 				ContentType: reqParams["contentType"][0],
@@ -57,9 +58,13 @@ func (m *MockerTest) New(reqParams map[string][]string, body []byte) (*string, e
 		Body64: body,
 	}
 
+	if len(reqParams["uri"]) > 0 {
+		mockedRequest.URI = reqParams["uri"][0]
+	}
+
 	m.mockResponse = mockedRequest
-	var r string = "{id}"
-	return &r, nil
+
+	return mockedRequest, nil
 }
 
 func (m *MockerTest) Clean(maxLimit int) (int, error) {
@@ -237,13 +242,14 @@ func TestGetMockedRequestEndpointIdNotFound(t *testing.T) {
 
 // TestGetMockedRequestEndpoint calls HTTPServer.getMockedRequest(http.ResponseWriter, *http.Request),
 // checking for a valid return value.
-func TestGetMockedRequestEndpoint(t *testing.T) {
+func TestGetMockedRequestEndpointWithId(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "http://localhost:3333/v1/{id}", nil)
 	w := httptest.NewRecorder()
 
 	mocker := &MockerTest{
 		mockResponse: &internal.MockedRequest{
 			MockedRequestLight: internal.MockedRequestLight{
+				Id: "{id}",
 				MockedRequestHeader: internal.MockedRequestHeader{
 					Status:      200,
 					ContentType: "text/plain",
@@ -256,6 +262,39 @@ func TestGetMockedRequestEndpoint(t *testing.T) {
 	}
 
 	NewHTTPServer("{port}", false, "", workingDirectory, mocker, *logger).getMockedRequest(w, req)
+
+	res, _ := geResultResponse(w, t)
+	if res.Status != "200 OK" {
+		t.Fatalf(`result: {%v} but expected {%v}`, res, mocker)
+	}
+}
+
+// TestGetMockedRequestEndpointWithURI calls HTTPServer.getMockedRequest(http.ResponseWriter, *http.Request),
+// checking for a valid return value.
+func TestGetMockedRequestEndpointWithURI(t *testing.T) {
+	req := httptest.NewRequest(http.MethodGet, "/my-uri", nil)
+	w := httptest.NewRecorder()
+
+	mocker := &MockerTest{
+		mockResponse: &internal.MockedRequest{
+			MockedRequestLight: internal.MockedRequestLight{
+				Id: "{id}",
+				MockedRequestHeader: internal.MockedRequestHeader{
+					Status:      200,
+					ContentType: "text/plain",
+					Charset:     "UTF-8",
+					URI:         "/my-uri",
+					Headers:     map[string]string{},
+				},
+			},
+			Body: "Hello World",
+		},
+	}
+
+	s := NewHTTPServer("{port}", false, "", workingDirectory, mocker, *logger)
+	s.uriToMockIdCache["/my-uri"] = "{id}"
+
+	s.getMockedRequest(w, req)
 
 	res, _ := geResultResponse(w, t)
 	if res.Status != "200 OK" {
@@ -293,6 +332,7 @@ func TestGetMockedRequestRawEndpoint(t *testing.T) {
 	mocker := &MockerTest{
 		mockResponse: &internal.MockedRequest{
 			MockedRequestLight: internal.MockedRequestLight{
+				Id: "{id}",
 				MockedRequestHeader: internal.MockedRequestHeader{
 					Status:      200,
 					ContentType: "text/plain",
@@ -309,7 +349,7 @@ func TestGetMockedRequestRawEndpoint(t *testing.T) {
 	res, data := geResultResponse(w, t)
 
 	if res.Status != "200 OK" ||
-		string(data) != `{"status":200,"contentType":"text/plain","charset":"UTF-8","headers":{"x-language":"golang"},"body":"Hello World","body64":"SGVsbG8gV29ybGQ="}` {
+		string(data) != `{"id":"{id}","status":200,"contentType":"text/plain","charset":"UTF-8","headers":{"x-language":"golang"},"body":"Hello World","body64":"SGVsbG8gV29ybGQ="}` {
 
 		t.Fatalf(`result: {%v} but expected {%v}`, res, mocker.mockResponse)
 	}
@@ -402,7 +442,7 @@ func TestAddNewEndpoint(t *testing.T) {
 		t.Errorf("Error: %v", err)
 	}
 
-	URL := "http://localhost:3333/v1/new?status=200&contentType=text/plain&charset=UTF-8"
+	URL := "http://localhost:3333/v1/new?status=200&contentType=text/plain&charset=UTF-8&uri=/my-uri"
 	req := httptest.NewRequest(http.MethodPost, URL, strings.NewReader("Hello World"))
 	w := httptest.NewRecorder()
 
@@ -419,6 +459,7 @@ func TestAddNewEndpoint(t *testing.T) {
 				Status:      200,
 				ContentType: "text/plain",
 				Charset:     "UTF-8",
+				URI:         "/my-uri",
 				Headers:     map[string]string{},
 			},
 		},
@@ -429,7 +470,8 @@ func TestAddNewEndpoint(t *testing.T) {
 		string(body) != `{"_links":{"raw":"http://localhost:3333/v1/raw/{id}","self":"http://localhost:3333/v1/{id}"},"id":"{id}"}` ||
 		!mocker.mockResponse.Equals(expected) ||
 		!mocker.clean ||
-		len(s.getRemoteAddr()) != 1 {
+		len(s.getRemoteAddr()) != 1 ||
+		s.uriToMockIdCache["/v1/my-uri"] != "{id}" {
 		t.Fatalf(`result: {%v} but expected {%v}`, res, expected)
 	}
 }
