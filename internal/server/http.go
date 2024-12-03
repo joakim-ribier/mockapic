@@ -26,7 +26,8 @@ type HTTPServer struct {
 	workingDirectory string
 	mocker           internal.Mocker
 
-	logger logsutil.Logger
+	uriToMockIdCache map[string]string
+	logger           logsutil.Logger
 }
 
 type MockedRequestLightWithLinks struct {
@@ -45,6 +46,7 @@ func NewHTTPServer(
 		certDirectory:    certDirectory,
 		workingDirectory: workingDirectory,
 		logger:           logger.Namespace("server"),
+		uriToMockIdCache: map[string]string{},
 	}
 }
 
@@ -56,6 +58,7 @@ func (s HTTPServer) Listen() error {
 		server.HandleFunc(pattern, func(w http.ResponseWriter, r *http.Request) {
 			remoteAddr := s.findRemoteAddr(r.RemoteAddr)
 			s.logger.Info("request", "uri", r.RequestURI, "method", r.Method, "remoteAddr", remoteAddr)
+			fmt.Printf("%s [%s] %s\n", remoteAddr, r.Method, r.RequestURI)
 
 			if r.Method != method {
 				w.WriteHeader(404)
@@ -196,13 +199,21 @@ func (s HTTPServer) getStatusCodes(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s HTTPServer) findMockedRequest(r *http.Request) (*internal.MockedRequest, int, error) {
-	url, err := url.ParseRequestURI(r.RequestURI)
-	if err != nil {
-		s.logger.Error(err, "error to parse URI", "uri", r.RequestURI)
-		return nil, 409, err
+	var mockId string
+
+	decodedURI, _ := url.QueryUnescape(r.RequestURI)
+	if id, ok := s.uriToMockIdCache[decodedURI]; ok {
+		mockId = id
+	} else {
+		url, err := url.ParseRequestURI(r.RequestURI)
+		if err != nil {
+			s.logger.Error(err, "error to parse URI", "uri", r.RequestURI)
+			return nil, 409, err
+		}
+		mockId = path.Base(url.Path)
 	}
 
-	mock, err := s.mocker.Get(path.Base(url.Path))
+	mock, err := s.mocker.Get(mockId)
 	if err != nil {
 		s.logger.Error(err, "error to get mock", "uri", r.RequestURI)
 		return nil, 404, err
@@ -218,7 +229,6 @@ func (s HTTPServer) getMockedRequest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Printf("mock request: %s\n", mock.Id)
 	NewResponse(w, "60s").Write(*mock, r.URL.Query().Get("delay"))
 }
 
@@ -244,11 +254,15 @@ func (s HTTPServer) addNewMock(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	id, err := s.mocker.New(r.URL.Query(), body)
+	mock, err := s.mocker.New(r.URL.Query(), body)
 	if err != nil {
 		s.logger.Error(err, "error to create new mock", "uri", r.RequestURI, "body", body)
 		writeError(w, err, 500)
 		return
+	}
+
+	if mock.URI != "" {
+		s.uriToMockIdCache["/v1"+mock.URI] = mock.Id
 	}
 
 	if internal.MOCKAPIC_REQ_MAX_LIMIT > 0 {
@@ -257,7 +271,7 @@ func (s HTTPServer) addNewMock(w http.ResponseWriter, r *http.Request) {
 
 	s.countRemoteAddr(r.RemoteAddr)
 
-	s.writeResponse(w, r, map[string]interface{}{"id": *id, "_links": s.getLinks(r, *id)})
+	s.writeResponse(w, r, map[string]interface{}{"id": mock.Id, "_links": s.getLinks(r, mock.Id)})
 }
 
 func (s HTTPServer) countRemoteAddr(requestRemoteAddr string) {

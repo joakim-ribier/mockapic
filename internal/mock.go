@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io/fs"
+	"net/url"
 	"os"
 	"reflect"
 	"time"
@@ -22,6 +23,7 @@ type MockedRequestHeader struct {
 	ContentType string            `json:"contentType,omitempty"`
 	Charset     string            `json:"charset,omitempty"`
 	Headers     map[string]string `json:"headers,omitempty"`
+	URI         string            `json:"uri,omitempty"`
 }
 
 type MockedRequestLight struct {
@@ -59,6 +61,7 @@ func (m MockedRequest) Equals(arg MockedRequest) bool {
 		m.ContentType == arg.ContentType &&
 		m.Charset == arg.Charset &&
 		m.Body == arg.Body &&
+		m.URI == arg.URI &&
 		bytes.Equal(m.Body64, arg.Body64) &&
 		reflect.DeepEqual(m.Headers, arg.Headers)
 }
@@ -66,7 +69,7 @@ func (m MockedRequest) Equals(arg MockedRequest) bool {
 type Mocker interface {
 	Get(mockId string) (*MockedRequest, error)
 	List() ([]MockedRequestLight, error)
-	New(params map[string][]string, body []byte) (*string, error)
+	New(params map[string][]string, body []byte) (*MockedRequest, error)
 	Clean(maxLimit int) (int, error)
 }
 
@@ -143,7 +146,7 @@ func (m Mock) List() ([]MockedRequestLight, error) {
 }
 
 // New creates a new mocked request and returns the new identifier.
-func (m Mock) New(reqParams map[string][]string, reqBody []byte) (*string, error) {
+func (m Mock) New(reqParams map[string][]string, reqBody []byte) (*MockedRequest, error) {
 	mock := &MockedRequest{
 		MockedRequestLight: MockedRequestLight{
 			Id:                  uuid.NewString(),
@@ -153,24 +156,32 @@ func (m Mock) New(reqParams map[string][]string, reqBody []byte) (*string, error
 		Body64: reqBody,
 	}
 
-	getReqParam := func(values []string) string {
+	getReqParam := func(name string, values []string) string {
 		if len(values) == 0 {
 			return ""
 		}
-		return values[0]
+
+		decodedValue, err := url.QueryUnescape(values[0])
+		if err != nil {
+			m.logger.Error(err, "error to decode value", "mockId", mock.Id, name, values[0])
+			return ""
+		}
+		return decodedValue
 	}
 
 	for name, values := range reqParams {
 		switch name {
 		case "contentType":
-			mock.ContentType = getReqParam(values)
+			mock.ContentType = getReqParam(name, values)
 		case "charset":
-			mock.Charset = getReqParam(values)
+			mock.Charset = getReqParam(name, values)
 		case "status":
-			mock.Status = stringsutil.Int(getReqParam(values), -1)
+			mock.Status = stringsutil.Int(getReqParam(name, values), -1)
+		case "uri":
+			mock.URI = getReqParam(name, values)
 		default:
 			if len(values) > 0 {
-				mock.Headers[name] = values[0]
+				mock.Headers[name] = getReqParam(name, values)
 			}
 		}
 	}
@@ -199,7 +210,7 @@ func (m Mock) New(reqParams map[string][]string, reqBody []byte) (*string, error
 		return nil, err
 	}
 
-	return &mock.Id, nil
+	return mock, nil
 }
 
 // Clean removes the x (nb mocked request - max limit) last requests.

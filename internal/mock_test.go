@@ -53,7 +53,7 @@ func TestGetWithBadRequest(t *testing.T) {
 
 	err := iosutil.Write([]byte(mockedRequest), file)
 	if err != nil {
-		t.Fatalf(err.Error())
+		t.Fatal(err.Error())
 	}
 
 	r, err := NewMock(workingDirectory, nil, *logger).Get("{id}")
@@ -70,7 +70,7 @@ func TestGet(t *testing.T) {
 
 	r, err := NewMock(workingDirectory, nil, *logger).Get(mockedRequest.Id)
 	if err != nil {
-		t.Fatalf(err.Error())
+		t.Fatal(err.Error())
 	}
 
 	if !r.Equals(mockedRequest) {
@@ -97,7 +97,7 @@ func TestGetFromLoadedMockedRequest(t *testing.T) {
 
 	r, err := NewMock(workingDirectory, []PredefinedMockedRequest{{MockedRequest: *mockedRequest}}, *logger).Get(mockedRequest.Id)
 	if err != nil {
-		t.Fatalf(err.Error())
+		t.Fatal(err.Error())
 	}
 
 	mockedRequest.Body64 = []byte("Hello World")
@@ -125,7 +125,7 @@ func TestList(t *testing.T) {
 
 	r, err := NewMock(workingDirectory, nil, *logger).List()
 	if err != nil {
-		t.Fatalf(err.Error())
+		t.Fatal(err.Error())
 	}
 
 	if !slicesutil.ExistT[MockedRequestLight](r, func(ml MockedRequestLight) bool {
@@ -154,7 +154,7 @@ func TestListWithPredefinedMockedRequests(t *testing.T) {
 
 	r, err := NewMock(workingDirectory, []PredefinedMockedRequest{{MockedRequest: mockedRequest}}, *logger).List()
 	if err != nil {
-		t.Fatalf(err.Error())
+		t.Fatal(err.Error())
 	}
 
 	if !slicesutil.ExistT[MockedRequestLight](r, func(ml MockedRequestLight) bool { return ml.Id == mockedRequest.Id }) {
@@ -235,14 +235,14 @@ func TestNew(t *testing.T) {
 	}
 	reqBody := "Hello World"
 
-	id, err := NewMock(workingDirectory, nil, *logger).New(reqParams, []byte(reqBody))
+	newMocked, err := NewMock(workingDirectory, nil, *logger).New(reqParams, []byte(reqBody))
 	if err != nil {
-		t.Fatalf(err.Error())
+		t.Fatal(err.Error())
 	}
 
-	mock, err := NewMock(workingDirectory, nil, *logger).Get(*id)
+	mock, err := NewMock(workingDirectory, nil, *logger).Get(newMocked.Id)
 	if err != nil {
-		t.Fatalf(err.Error())
+		t.Fatal(err.Error())
 	}
 
 	expected := MockedRequest{
