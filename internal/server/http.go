@@ -201,7 +201,7 @@ func (s HTTPServer) getStatusCodes(w http.ResponseWriter, r *http.Request) {
 func (s HTTPServer) findMockedRequest(r *http.Request) (*internal.MockedRequest, int, error) {
 	var mockId string
 
-	decodedURI, _ := url.QueryUnescape(r.RequestURI)
+	decodedURI, _ := url.QueryUnescape(r.URL.Path)
 	if id, ok := s.uriToMockIdCache[decodedURI]; ok {
 		mockId = id
 	} else {

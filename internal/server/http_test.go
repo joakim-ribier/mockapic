@@ -272,7 +272,7 @@ func TestGetMockedRequestEndpointWithId(t *testing.T) {
 // TestGetMockedRequestEndpointWithURI calls HTTPServer.getMockedRequest(http.ResponseWriter, *http.Request),
 // checking for a valid return value.
 func TestGetMockedRequestEndpointWithURI(t *testing.T) {
-	req := httptest.NewRequest(http.MethodGet, "/my-uri", nil)
+	req := httptest.NewRequest(http.MethodGet, "/my-uri?id={param}", nil)
 	w := httptest.NewRecorder()
 
 	mocker := &MockerTest{
