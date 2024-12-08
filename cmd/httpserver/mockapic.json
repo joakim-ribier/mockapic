@@ -1,19 +1,21 @@
 [
 	{
-		"id": "404-NotFound",
+		"id": "id:sample-not-found",
 		"status": 404,
 		"contentType": "text/plain",
 		"charset": "UTF-8",
+		"path": "/sample/not-found",
 		"headers": {
 			"domain": "github.com/joakim-ribier",
 			"project": "mockapic"
 		}
 	},
 	{
-		"id": "500-InternalServerError",
+		"id": "id:sample-error",
 		"status": 500,
 		"contentType": "application/json",
 		"charset": "UTF-8",
+		"path": "/sample/error",
 		"headers": {
 			"domain": "github.com/joakim-ribier",
 			"project": "mockapic"
@@ -21,10 +23,11 @@
 		"body": "{\"message\":\"An error...\"}"
 	},
 	{
-		"id": "HelloWorld-TEXT",
+		"id": "id:sample-helloWorld",
 		"status": 200,
 		"contentType": "text/plain",
 		"charset": "UTF-8",
+		"path": "/sample/helloworld",
 		"headers": {
 			"domain": "github.com/joakim-ribier",
 			"project": "mockapic"
@@ -32,10 +35,11 @@
 		"body": "Hello World"
 	},
 	{
-		"id": "HelloWorld-JSON",
+		"id": "id:sample-helloWorld-json",
 		"status": 200,
-		"contentType": "text/plain",
+		"contentType": "application/json",
 		"charset": "UTF-8",
+		"path": "/sample/helloworld/json",
 		"headers": {
 			"domain": "github.com/joakim-ribier",
 			"project": "mockapic"
@@ -43,10 +47,11 @@
 		"body": "{\"message\":\"Hello Word\"}"
 	},
 	{
-		"id": "200-Image",
+		"id": "id:sample-img",
 		"status": 200,
 		"contentType": "image/png",
 		"charset": "UTF-8",
+		"path": "/sample/img",
 		"headers": {
 			"domain": "github.com/joakim-ribier",
 			"project": "mockapic"

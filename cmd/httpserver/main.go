@@ -69,15 +69,29 @@ func main() {
 		}
 	}
 
+	mock := internal.NewMock(internal.MOCKAPIC_REQUEST(), predefinedMockedRequests, *logger)
+
 	httpServer := server.NewHTTPServer(
 		stringsutil.OrElse(internal.MOCKAPIC_PORT, "3333"),
 		internal.MOCKAPIC_SSL,
 		internal.MOCKAPIC_CERT_DIRECTORY,
 		internal.MOCKAPIC_HOME,
-		internal.NewMock(internal.MOCKAPIC_REQUEST(), predefinedMockedRequests, *logger),
+		mock,
 		*logger)
 
 	fmt.Print(internal.LOGO)
+
+	// load existing requests...
+	var pathToMockId map[string]string
+	if values, err := mock.List(); err == nil && len(values) > 0 {
+		fmt.Printf("\nLoad %d request%s!", len(values), genericsutil.When(values, func(v []internal.MockedRequestLight) bool { return len(v) > 1 }, "s", ""))
+		pathToMockId = make(map[string]string, len(values))
+		for _, b := range values {
+			pathToMockId["/v1"+b.Path] = b.Id
+		}
+		httpServer.PathToMockId = pathToMockId
+	}
+
 	fmt.Printf("\nServer running on port %s[:%s]....\n",
 		genericsutil.When(internal.MOCKAPIC_SSL, func(arg bool) bool { return arg }, "https", "http"),
 		httpServer.Port)

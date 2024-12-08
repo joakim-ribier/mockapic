@@ -23,7 +23,7 @@ type MockedRequestHeader struct {
 	ContentType string            `json:"contentType,omitempty"`
 	Charset     string            `json:"charset,omitempty"`
 	Headers     map[string]string `json:"headers,omitempty"`
-	URI         string            `json:"uri,omitempty"`
+	Path        string            `json:"path,omitempty"`
 }
 
 type MockedRequestLight struct {
@@ -61,7 +61,7 @@ func (m MockedRequest) Equals(arg MockedRequest) bool {
 		m.ContentType == arg.ContentType &&
 		m.Charset == arg.Charset &&
 		m.Body == arg.Body &&
-		m.URI == arg.URI &&
+		m.Path == arg.Path &&
 		bytes.Equal(m.Body64, arg.Body64) &&
 		reflect.DeepEqual(m.Headers, arg.Headers)
 }
@@ -177,8 +177,8 @@ func (m Mock) New(reqParams map[string][]string, reqBody []byte) (*MockedRequest
 			mock.Charset = getReqParam(name, values)
 		case "status":
 			mock.Status = stringsutil.Int(getReqParam(name, values), -1)
-		case "uri":
-			mock.URI = getReqParam(name, values)
+		case "path":
+			mock.Path = getReqParam(name, values)
 		default:
 			if len(values) > 0 {
 				mock.Headers[name] = getReqParam(name, values)

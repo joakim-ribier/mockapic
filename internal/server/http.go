@@ -26,8 +26,8 @@ type HTTPServer struct {
 	workingDirectory string
 	mocker           internal.Mocker
 
-	uriToMockIdCache map[string]string
-	logger           logsutil.Logger
+	PathToMockId map[string]string
+	logger       logsutil.Logger
 }
 
 type MockedRequestLightWithLinks struct {
@@ -37,7 +37,11 @@ type MockedRequestLightWithLinks struct {
 
 // NewHTTPServer creates and initializes a {HTTPServer} struct
 func NewHTTPServer(
-	port string, ssl bool, certDirectory, workingDirectory string, mocker internal.Mocker, logger logsutil.Logger) *HTTPServer {
+	port string,
+	ssl bool,
+	certDirectory, workingDirectory string,
+	mocker internal.Mocker,
+	logger logsutil.Logger) *HTTPServer {
 
 	return &HTTPServer{
 		Port:             port,
@@ -46,7 +50,7 @@ func NewHTTPServer(
 		certDirectory:    certDirectory,
 		workingDirectory: workingDirectory,
 		logger:           logger.Namespace("server"),
-		uriToMockIdCache: map[string]string{},
+		PathToMockId:     map[string]string{},
 	}
 }
 
@@ -202,7 +206,7 @@ func (s HTTPServer) findMockedRequest(r *http.Request) (*internal.MockedRequest,
 	var mockId string
 
 	decodedURI, _ := url.QueryUnescape(r.URL.Path)
-	if id, ok := s.uriToMockIdCache[decodedURI]; ok {
+	if id, ok := s.PathToMockId[decodedURI]; ok {
 		mockId = id
 	} else {
 		url, err := url.ParseRequestURI(r.RequestURI)
@@ -261,8 +265,8 @@ func (s HTTPServer) addNewMock(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if mock.URI != "" {
-		s.uriToMockIdCache["/v1"+mock.URI] = mock.Id
+	if mock.Path != "" {
+		s.PathToMockId["/v1"+mock.Path] = mock.Id
 	}
 
 	if internal.MOCKAPIC_REQ_MAX_LIMIT > 0 {
@@ -271,7 +275,7 @@ func (s HTTPServer) addNewMock(w http.ResponseWriter, r *http.Request) {
 
 	s.countRemoteAddr(r.RemoteAddr)
 
-	s.writeResponse(w, r, map[string]interface{}{"id": mock.Id, "_links": s.getLinks(r, mock.Id)})
+	s.writeResponse(w, r, map[string]interface{}{"id": mock.Id, "_links": s.getLinks(r, mock.MockedRequestLight)})
 }
 
 func (s HTTPServer) countRemoteAddr(requestRemoteAddr string) {
@@ -325,11 +329,17 @@ func (s HTTPServer) getRemoteAddr() map[string]int {
 	return data
 }
 
-func (s HTTPServer) getLinks(r *http.Request, mockedRequestId string) map[string]string {
-	return map[string]string{
-		"self": s.getProtocol(r) + "://" + r.Host + "/v1/" + mockedRequestId,
-		"raw":  s.getProtocol(r) + "://" + r.Host + "/v1/raw/" + mockedRequestId,
+func (s HTTPServer) getLinks(r *http.Request, mock internal.MockedRequestLight) map[string]string {
+	values := map[string]string{
+		"self": s.getProtocol(r) + "://" + r.Host + "/v1/" + mock.Id,
+		"raw":  s.getProtocol(r) + "://" + r.Host + "/v1/raw/" + mock.Id,
 	}
+
+	if len(mock.Path) > 0 {
+		values["path"] = s.getProtocol(r) + "://" + r.Host + "/v1" + mock.Path
+	}
+
+	return values
 }
 
 func (s HTTPServer) list(w http.ResponseWriter, r *http.Request) {
@@ -343,7 +353,7 @@ func (s HTTPServer) list(w http.ResponseWriter, r *http.Request) {
 	all := slicesutil.TransformT[internal.MockedRequestLight, MockedRequestLightWithLinks](mockedRequestLights, func(mrl internal.MockedRequestLight) (*MockedRequestLightWithLinks, error) {
 		return &MockedRequestLightWithLinks{
 			MockedRequestLight: mrl,
-			Links:              s.getLinks(r, mrl.Id),
+			Links:              s.getLinks(r, mrl),
 		}, nil
 	})
 

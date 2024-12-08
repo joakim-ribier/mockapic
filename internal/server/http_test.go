@@ -58,8 +58,8 @@ func (m *MockerTest) New(reqParams map[string][]string, body []byte) (*internal.
 		Body64: body,
 	}
 
-	if len(reqParams["uri"]) > 0 {
-		mockedRequest.URI = reqParams["uri"][0]
+	if len(reqParams["path"]) > 0 {
+		mockedRequest.Path = reqParams["path"][0]
 	}
 
 	m.mockResponse = mockedRequest
@@ -269,10 +269,10 @@ func TestGetMockedRequestEndpointWithId(t *testing.T) {
 	}
 }
 
-// TestGetMockedRequestEndpointWithURI calls HTTPServer.getMockedRequest(http.ResponseWriter, *http.Request),
+// TestGetMockedRequestEndpointWithPath calls HTTPServer.getMockedRequest(http.ResponseWriter, *http.Request),
 // checking for a valid return value.
-func TestGetMockedRequestEndpointWithURI(t *testing.T) {
-	req := httptest.NewRequest(http.MethodGet, "/my-uri?id={param}", nil)
+func TestGetMockedRequestEndpointWithPath(t *testing.T) {
+	req := httptest.NewRequest(http.MethodGet, "/my-path?id={param}", nil)
 	w := httptest.NewRecorder()
 
 	mocker := &MockerTest{
@@ -283,7 +283,7 @@ func TestGetMockedRequestEndpointWithURI(t *testing.T) {
 					Status:      200,
 					ContentType: "text/plain",
 					Charset:     "UTF-8",
-					URI:         "/my-uri",
+					Path:        "/my-path",
 					Headers:     map[string]string{},
 				},
 			},
@@ -292,7 +292,7 @@ func TestGetMockedRequestEndpointWithURI(t *testing.T) {
 	}
 
 	s := NewHTTPServer("{port}", false, "", workingDirectory, mocker, *logger)
-	s.uriToMockIdCache["/my-uri"] = "{id}"
+	s.PathToMockId["/my-path"] = "{id}"
 
 	s.getMockedRequest(w, req)
 
@@ -442,7 +442,7 @@ func TestAddNewEndpoint(t *testing.T) {
 		t.Errorf("Error: %v", err)
 	}
 
-	URL := "http://localhost:3333/v1/new?status=200&contentType=text/plain&charset=UTF-8&uri=/my-uri"
+	URL := "http://localhost:3333/v1/new?status=200&contentType=text/plain&charset=UTF-8&path=/my-path"
 	req := httptest.NewRequest(http.MethodPost, URL, strings.NewReader("Hello World"))
 	w := httptest.NewRecorder()
 
@@ -459,7 +459,7 @@ func TestAddNewEndpoint(t *testing.T) {
 				Status:      200,
 				ContentType: "text/plain",
 				Charset:     "UTF-8",
-				URI:         "/my-uri",
+				Path:        "/my-path",
 				Headers:     map[string]string{},
 			},
 		},
@@ -467,11 +467,11 @@ func TestAddNewEndpoint(t *testing.T) {
 	}
 
 	if res.Status != "200 OK" ||
-		string(body) != `{"_links":{"raw":"http://localhost:3333/v1/raw/{id}","self":"http://localhost:3333/v1/{id}"},"id":"{id}"}` ||
+		string(body) != `{"_links":{"path":"http://localhost:3333/v1/my-path","raw":"http://localhost:3333/v1/raw/{id}","self":"http://localhost:3333/v1/{id}"},"id":"{id}"}` ||
 		!mocker.mockResponse.Equals(expected) ||
 		!mocker.clean ||
 		len(s.getRemoteAddr()) != 1 ||
-		s.uriToMockIdCache["/v1/my-uri"] != "{id}" {
+		s.PathToMockId["/v1/my-path"] != "{id}" {
 		t.Fatalf(`result: {%v} but expected {%v}`, res, expected)
 	}
 }

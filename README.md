@@ -90,7 +90,7 @@ Server running on port http[:3333]....
 The first one simulate a real response of the external API service which returns the exchange rates:
 
 ```bash
-$ curl -X POST 'http://localhost:3333/v1/new?status=200&contentType=application%2Fjson&charset=UTF-8&domain=github.com%2Fjoakim-ribier&project=mockapic' \
+$ curl -X POST 'http://localhost:3333/v1/new?status=200&contentType=application%2Fjson&charset=UTF-8&domain=github.com%2Fjoakim-ribier&project=mockapic&path=/currencies' \
 --data '{
   "timestamp":1725967696,
   "rates":{
@@ -128,8 +128,9 @@ $ curl -X POST 'http://localhost:3333/v1/new?status=500&contentType=application%
 }
 ```
 
-3. Use the `id` from the response to call the mocked URL
+3. Use the `id` from the response to call the mocked URL or the `path` parameter
 ```bash
+# {id} from the response
 $ curl -GET 'http://localhost:3333/v1/c1403100-3aa0-484f-8e0f-f2c1db80f371' | jq
   % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
                                  Dload  Upload   Total   Spent    Left  Speed
@@ -147,6 +148,10 @@ $ curl -GET 'http://localhost:3333/v1/c1403100-3aa0-484f-8e0f-f2c1db80f371' | jq
     "USD": 1.103546
   }
 }
+
+# {path} parameter from the url ~/?path=/currencies
+$ curl -GET 'http://localhost:3333/v1/currencies' | jq
+...
 ```
 
 or
@@ -205,11 +210,12 @@ List APIs available
 #### Create New Mocked Request
 
 ```bash
-$ curl -X POST '~/v1/new?status={status}&contentType={contentType}&charset={charset}&{header1}={header1}&{header2}={header2}' \
+$ curl -X POST '~/v1/new?status={status}&contentType={contentType}&charset={charset}&{header1}={header1}&{header2}={header2}&path={path}' \
 --data 'Hello World' | jq
 {
   "id": "{id}",
   "_links": {
+    "path": "{host}/v1/{path}",
     "raw": "{host}/v1/raw/{id}",
     "self": "{host}/v1/{id}"
   }
@@ -223,6 +229,7 @@ $ curl -X POST '~/v1/new?status={status}&contentType={contentType}&charset={char
 | charset     | [x]      | Charset: `UTF-8`, `UTF-16` or `ISO-8859-1`
 | body        |          | Body returns by the request (`[]bytes(text, json)`)
 | headers     |          | Header parameters (`x-key: value`)
+| path        |          | Path to call the request (`/my-path`)
 
 #### Get Mocked Request
 
