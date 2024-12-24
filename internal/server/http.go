@@ -58,13 +58,13 @@ func NewHTTPServer(
 func (s HTTPServer) Listen() error {
 	server := http.NewServeMux()
 
-	handleFunc := func(method, pattern string, handle func(w http.ResponseWriter, r *http.Request)) {
+	handleFuncToMethods := func(methods []string, pattern string, handle func(w http.ResponseWriter, r *http.Request)) {
 		server.HandleFunc(pattern, func(w http.ResponseWriter, r *http.Request) {
 			remoteAddr := s.findRemoteAddr(r.RemoteAddr)
 			s.logger.Info("request", "uri", r.RequestURI, "method", r.Method, "remoteAddr", remoteAddr)
 			fmt.Printf("%s [%s] %s\n", remoteAddr, r.Method, r.RequestURI)
 
-			if r.Method != method {
+			if !slicesutil.Exist(methods, r.Method) {
 				w.WriteHeader(404)
 				return
 			}
@@ -72,16 +72,21 @@ func (s HTTPServer) Listen() error {
 		})
 	}
 
-	handleFunc("GET", "/", s.home)
+	handleFunc := func(method string, pattern string, handle func(w http.ResponseWriter, r *http.Request)) {
+		handleFuncToMethods([]string{method}, pattern, handle)
+	}
 
-	handleFunc("GET", "/static/content-types", s.getContentTypes)
-	handleFunc("GET", "/static/charsets", s.getCharsets)
-	handleFunc("GET", "/static/status-codes", s.getStatusCodes)
+	handleFunc(http.MethodGet, "/", s.home)
 
-	handleFunc("GET", "/v1/", s.getMockedRequest)
-	handleFunc("GET", "/v1/raw/", s.getMockedRequestRaw)
-	handleFunc("GET", "/v1/list", s.list)
-	handleFunc("POST", "/v1/new", s.addNewMock)
+	handleFunc(http.MethodGet, "/static/content-types", s.getContentTypes)
+	handleFunc(http.MethodGet, "/static/charsets", s.getCharsets)
+	handleFunc(http.MethodGet, "/static/status-codes", s.getStatusCodes)
+
+	handleFuncToMethods(
+		[]string{http.MethodGet, http.MethodPost}, "/v1/", s.getMockedRequest)
+	handleFunc(http.MethodGet, "/v1/raw/", s.getMockedRequestRaw)
+	handleFunc(http.MethodGet, "/v1/list", s.list)
+	handleFunc(http.MethodPost, "/v1/new", s.addNewMock)
 
 	if s.SSLEnabled {
 		return http.ListenAndServeTLS(
@@ -191,15 +196,15 @@ func (s HTTPServer) home(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s HTTPServer) getContentTypes(w http.ResponseWriter, r *http.Request) {
-	s.writeResponse(w, r, pkg.CONTENT_TYPES)
+	s.writeResponse(w, r, pkg.CONTENT_TYPES, http.StatusOK)
 }
 
 func (s HTTPServer) getCharsets(w http.ResponseWriter, r *http.Request) {
-	s.writeResponse(w, r, pkg.CHARSET)
+	s.writeResponse(w, r, pkg.CHARSET, http.StatusOK)
 }
 
 func (s HTTPServer) getStatusCodes(w http.ResponseWriter, r *http.Request) {
-	s.writeResponse(w, r, pkg.HTTP_CODES)
+	s.writeResponse(w, r, pkg.HTTP_CODES, http.StatusOK)
 }
 
 func (s HTTPServer) findMockedRequest(r *http.Request) (*internal.MockedRequest, int, error) {
@@ -247,7 +252,7 @@ func (s HTTPServer) getMockedRequestRaw(w http.ResponseWriter, r *http.Request) 
 		mock.Body = string(mock.Body64)
 	}
 
-	s.writeResponse(w, r, mock)
+	s.writeResponse(w, r, mock, http.StatusOK)
 }
 
 func (s HTTPServer) addNewMock(w http.ResponseWriter, r *http.Request) {
@@ -275,7 +280,7 @@ func (s HTTPServer) addNewMock(w http.ResponseWriter, r *http.Request) {
 
 	s.countRemoteAddr(r.RemoteAddr)
 
-	s.writeResponse(w, r, map[string]interface{}{"id": mock.Id, "_links": s.getLinks(r, mock.MockedRequestLight)})
+	s.writeResponse(w, r, map[string]interface{}{"id": mock.Id, "_links": s.getLinks(r, mock.MockedRequestLight)}, http.StatusCreated)
 }
 
 func (s HTTPServer) countRemoteAddr(requestRemoteAddr string) {
@@ -361,25 +366,25 @@ func (s HTTPServer) list(w http.ResponseWriter, r *http.Request) {
 		all = []MockedRequestLightWithLinks{}
 	}
 
-	s.writeResponse(w, r, all)
+	s.writeResponse(w, r, all, http.StatusOK)
 }
 
-func (s HTTPServer) writeResponse(w http.ResponseWriter, r *http.Request, data any) {
+func (s HTTPServer) writeResponse(w http.ResponseWriter, r *http.Request, data any, statusCode int) {
 	bytes, err := jsonsutil.Marshal(data)
 	if err != nil {
 		s.logger.Error(err, "error to marshal data", "uri", r.RequestURI, "data", data)
-		writeError(w, err, 500)
+		writeError(w, err, http.StatusInternalServerError)
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(200)
+	w.WriteHeader(statusCode)
 	w.Write(bytes)
 }
 
 func writeError(w http.ResponseWriter, err error, statusCode int) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCode)
-	if statusCode != 404 {
+	if statusCode != http.StatusNotFound {
 		w.Write([]byte(fmt.Sprintf(`{"message": "%s"}`, err.Error())))
 	}
 }
