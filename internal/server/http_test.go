@@ -91,10 +91,28 @@ func TestMain(m *testing.M) {
 	os.Exit(exitVal)
 }
 
-// TestListen calls HTTPServer.Listen(),
+// TestListenEndpoints calls HTTPServer.Listen(),
 // checking for a valid return value.
-func TestListen(t *testing.T) {
-	httpServer := NewHTTPServer("3334", false, "", workingDirectory, &MockerTest{}, *logger)
+func TestListenEndpoints(t *testing.T) {
+	mockedRequest := &internal.MockedRequest{
+		MockedRequestLight: internal.MockedRequestLight{
+			Id: "{id}",
+			MockedRequestHeader: internal.MockedRequestHeader{
+				Status:      200,
+				ContentType: "text/plain",
+				Charset:     "UTF-8",
+				Headers:     map[string]string{},
+			},
+		},
+		Body: "Hello World",
+	}
+
+	mockerTest := &MockerTest{
+		mockResponse:       mockedRequest,
+		mockResponseLights: []internal.MockedRequestLight{mockedRequest.MockedRequestLight}}
+
+	baseURL := "http://localhost:3334"
+	httpServer := NewHTTPServer("3334", false, "", workingDirectory, mockerTest, *logger)
 
 	go func() {
 		err := httpServer.Listen()
@@ -104,19 +122,24 @@ func TestListen(t *testing.T) {
 	}()
 	time.Sleep(100 * time.Millisecond)
 
-	req, _ := httpsutil.NewHttpRequest("http://localhost:3334/", "")
-	resp, _ := req.Call()
-
-	if resp.StatusCode != 200 {
-		t.Fatalf(`result: {%v} but expected {%v}`, resp.StatusCode, 200)
+	assertReq := func(method, url, body string, expectedCodeResult int) {
+		req, _ := httpsutil.NewHttpRequest(baseURL+url, body)
+		resp, _ := req.Method(method).Call()
+		if resp.StatusCode != expectedCodeResult {
+			t.Fatalf(`result: [%s] %s => {%v} but expected {%v}`, method, url, resp.StatusCode, expectedCodeResult)
+		}
 	}
 
-	// testing '404' if bad endpoint is called
-	req, _ = httpsutil.NewHttpRequest("http://localhost:3334/", "")
-	resp, _ = req.Method("POST").Call()
-	if resp.StatusCode != 404 {
-		t.Fatalf(`result: {%v} but expected {%v}`, resp.StatusCode, 200)
-	}
+	assertReq(http.MethodGet, "", "", http.StatusOK)
+	assertReq(http.MethodGet, "/static/content-types", "", http.StatusOK)
+	assertReq(http.MethodGet, "/static/charsets", "", http.StatusOK)
+	assertReq(http.MethodGet, "/static/status-codes", "", http.StatusOK)
+	assertReq(http.MethodGet, "/v1/{id}", "", http.StatusOK)
+	assertReq(http.MethodPost, "/v1/{id}", "", http.StatusOK)
+	assertReq(http.MethodGet, "/v1/{wrong-id}", "", http.StatusNotFound)
+	assertReq(http.MethodGet, "/v1/raw/{id}", "", http.StatusOK)
+	assertReq(http.MethodGet, "/v1/list", "", http.StatusOK)
+	assertReq(http.MethodPost, "/v1/new?status=200&contentType=text/plain&charset=UTF-8", "Hello World", http.StatusCreated)
 }
 
 // TestListen calls HTTPServer.Listen(),
@@ -244,6 +267,35 @@ func TestGetMockedRequestEndpointIdNotFound(t *testing.T) {
 // checking for a valid return value.
 func TestGetMockedRequestEndpointWithId(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "http://localhost:3333/v1/{id}", nil)
+	w := httptest.NewRecorder()
+
+	mocker := &MockerTest{
+		mockResponse: &internal.MockedRequest{
+			MockedRequestLight: internal.MockedRequestLight{
+				Id: "{id}",
+				MockedRequestHeader: internal.MockedRequestHeader{
+					Status:      200,
+					ContentType: "text/plain",
+					Charset:     "UTF-8",
+					Headers:     map[string]string{},
+				},
+			},
+			Body: "Hello World",
+		},
+	}
+
+	NewHTTPServer("{port}", false, "", workingDirectory, mocker, *logger).getMockedRequest(w, req)
+
+	res, _ := geResultResponse(w, t)
+	if res.Status != "200 OK" {
+		t.Fatalf(`result: {%v} but expected {%v}`, res, mocker)
+	}
+}
+
+// TestGetMockedRequestEndpointOnPostMethodWithId calls HTTPServer.getMockedRequest(http.ResponseWriter, *http.Request),
+// checking for a valid return value.
+func TestGetMockedRequestEndpointOnPostMethodWithId(t *testing.T) {
+	req := httptest.NewRequest(http.MethodPost, "http://localhost:3333/v1/{id}", nil)
 	w := httptest.NewRecorder()
 
 	mocker := &MockerTest{
@@ -466,7 +518,7 @@ func TestAddNewEndpoint(t *testing.T) {
 		Body64: []byte("Hello World"),
 	}
 
-	if res.Status != "200 OK" ||
+	if res.Status != "201 Created" ||
 		string(body) != `{"_links":{"path":"http://localhost:3333/v1/my-path","raw":"http://localhost:3333/v1/raw/{id}","self":"http://localhost:3333/v1/{id}"},"id":"{id}"}` ||
 		!mocker.mockResponse.Equals(expected) ||
 		!mocker.clean ||
