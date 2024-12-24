@@ -232,6 +232,7 @@ func TestNew(t *testing.T) {
 		"charset":     {"UTF-8"},
 		"x-language":  {"golang"},
 		"x-domain":    {"github.com"},
+		"path":        {"/my-path"},
 	}
 	reqBody := "Hello World"
 
@@ -252,6 +253,7 @@ func TestNew(t *testing.T) {
 				ContentType: "text/plain",
 				Charset:     "UTF-8",
 				Headers:     map[string]string{"x-language": "golang", "x-domain": "github.com"},
+				Path:        "/my-path",
 			},
 		},
 		Body64: []byte("Hello World"),

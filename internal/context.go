@@ -16,17 +16,7 @@ const LOGO = `
                     https://github.com/joakim-ribier/mockapic
 `
 
-var MOCKAPIC_HOME = os.Getenv("MOCKAPIC_HOME")
-var MOCKAPIC_REQUEST = func() string {
-	return MOCKAPIC_HOME + "/requests"
-}
-var MOCKAPIC_REQ_PREDEFINED_FILE = func() string {
-	return MOCKAPIC_HOME + "/mockapic.json"
-}
-
 var MOCKAPIC_REQ_MAX_LIMIT = stringsutil.Int(os.Getenv("MOCKAPIC_REQ_MAX_LIMIT"), -1)
-
-var MOCKAPIC_PORT = os.Getenv("MOCKAPIC_PORT")
 
 var MOCKAPIC_SSL = stringsutil.Bool(os.Getenv("MOCKAPIC_SSL"))
 var MOCKAPIC_CERT_DIRECTORY = os.Getenv("MOCKAPIC_CERT")
