@@ -66,5 +66,5 @@ jobs:
       uses: peter-evans/repository-dispatch@v3
       with:
         token: ${{ secrets.MOCKAPIC_DISPATCH_EVENT }}
-        repository: joakim-ribier/go-utils
+        repository: joakim-ribier/mockapic-example-go
         event-type: 'trigger-from-event:build_and_test'
