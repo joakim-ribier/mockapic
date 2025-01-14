@@ -28,6 +28,7 @@ type HTTPServer struct {
 
 	PathToMockId map[string]string
 	logger       logsutil.Logger
+	version      string
 }
 
 type MockedRequestLightWithLinks struct {
@@ -41,7 +42,8 @@ func NewHTTPServer(
 	ssl bool,
 	certDirectory, workingDirectory string,
 	mocker internal.Mocker,
-	logger logsutil.Logger) *HTTPServer {
+	logger logsutil.Logger,
+	version string) *HTTPServer {
 
 	return &HTTPServer{
 		Port:             port,
@@ -51,6 +53,7 @@ func NewHTTPServer(
 		workingDirectory: workingDirectory,
 		logger:           logger.Namespace("server"),
 		PathToMockId:     map[string]string{},
+		version:          version,
 	}
 }
 
@@ -189,10 +192,11 @@ func (s HTTPServer) home(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Write([]byte(fmt.Sprintf(
-		"%s\n\n%s\n\n\n%s",
+		"%s\n\n%s\n\n\n%s\n\n\n#%s",
 		internal.LOGO,
 		buildStatsTable(),
-		buildAPITable())))
+		buildAPITable(),
+		s.version)))
 }
 
 func (s HTTPServer) getContentTypes(w http.ResponseWriter, r *http.Request) {

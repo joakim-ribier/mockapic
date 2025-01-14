@@ -175,7 +175,7 @@ If you don't want to create a new mocked requests every time, you can also versi
 
 The file must be in `{MOCKAPIC_HOME}/mockapic.json` or directly mount to the right destination `-v /home/{user}/app/mockapic/mockapic.json:/usr/app/mockapic/mockapic.json` using as a Docker container.
 
-See an example of [`mockapic.json`](/cmd/httpserver/mockapic.json) file
+See an example of [`mockapic.json`](./mockapic.json) file
 
 ### SSL/Tls
 

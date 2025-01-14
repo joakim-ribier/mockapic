@@ -86,7 +86,8 @@ func main() {
 		internal.MOCKAPIC_CERT_DIRECTORY,
 		MOCKAPIC_HOME,
 		mock,
-		*logger)
+		*logger,
+		version())
 
 	fmt.Print(internal.LOGO)
 
@@ -108,4 +109,13 @@ func main() {
 	if err := httpServer.Listen(); err != nil {
 		log.Fatal("could not open httpServer", err)
 	}
+}
+
+// version reads the version number from the auto generated file {generated-version.txt}
+func version() string {
+	version, err := os.ReadFile("generated-version.txt")
+	if err != nil {
+		return "unknown"
+	}
+	return string(version)
 }
