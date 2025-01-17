@@ -24,6 +24,8 @@ github.com/jedib0t/go-pretty/v6 v6.5.9 h1:ACteMBRrrmm1gMsXe9PSTOClQ63IXDUt03H5U+
 github.com/jedib0t/go-pretty/v6 v6.5.9/go.mod h1:zbn98qrYlh95FIhwwsbIip0LYpwSG8SUOScs+v9/t0E=
 github.com/joakim-ribier/go-utils v0.0.0-20240807210644-38116094b686 h1:RmNPNQcWNpgAizxfIpV/ajT9zeJSduDkS9/8X31Ss78=
 github.com/joakim-ribier/go-utils v0.0.0-20240807210644-38116094b686/go.mod h1:jL9aqNowgUnfJ7FtFNCsQ9AdZA/xWSkmvJ+NDNXhThc=
+github.com/joakim-ribier/go-utils v0.0.0-20241224170118-715e427d8efc h1:Vy5btQphxRbPAWgcUm/FsTcZ6N3z1JYGdT4FDweMwE0=
+github.com/joakim-ribier/go-utils v0.0.0-20241224170118-715e427d8efc/go.mod h1:YTlyBrQ1L59sux5RDidYfzMtBSG0HiPvPce4ELZv6bM=
 github.com/mattn/go-runewidth v0.0.15 h1:UNAjwbU9l54TA3KzvqLGxwWjHmMgBUVhBiTjelZgg3U=
 github.com/mattn/go-runewidth v0.0.15/go.mod h1:Jdepj2loyihRzMpdS35Xk/zdY8IAYHsh153qUoGf23w=
 github.com/opencontainers/go-digest v1.0.0 h1:apOUWs51W5PlhuyGyz9FCeeBIOUDA/6nW8Oi/yOhh5U=

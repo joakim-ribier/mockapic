@@ -18,13 +18,27 @@ import (
 	"github.com/joakim-ribier/mockapic/pkg"
 )
 
+type SSL struct {
+	enabled bool
+	crtFile string
+	keyFile string
+}
+
+func NewSSL(enabled bool, directory, crtFile, keyFile string) SSL {
+	return SSL{
+		enabled: enabled,
+		crtFile: stringsutil.OrElse(crtFile, directory+"/mockapic.crt"),
+		keyFile: stringsutil.OrElse(keyFile, directory+"/mockapic.key")}
+}
+
 // HTTPServer represents a http server struct
 type HTTPServer struct {
-	Port             string
-	SSLEnabled       bool
-	certDirectory    string
-	workingDirectory string
-	mocker           internal.Mocker
+	Port                       string
+	workingDirectory           string
+	ssl                        SSL
+	totalNumberRequestsAllowed int
+
+	mocker internal.Mocker
 
 	PathToMockId map[string]string
 	logger       logsutil.Logger
@@ -39,21 +53,22 @@ type MockedRequestLightWithLinks struct {
 // NewHTTPServer creates and initializes a {HTTPServer} struct
 func NewHTTPServer(
 	port string,
-	ssl bool,
-	certDirectory, workingDirectory string,
+	ssl SSL,
+	workingDirectory string,
+	totalNumberRequestsAllowed int,
 	mocker internal.Mocker,
 	logger logsutil.Logger,
 	version string) *HTTPServer {
 
 	return &HTTPServer{
-		Port:             port,
-		mocker:           mocker,
-		SSLEnabled:       ssl,
-		certDirectory:    certDirectory,
-		workingDirectory: workingDirectory,
-		logger:           logger.Namespace("server"),
-		PathToMockId:     map[string]string{},
-		version:          version,
+		Port:                       port,
+		mocker:                     mocker,
+		ssl:                        ssl,
+		workingDirectory:           workingDirectory,
+		totalNumberRequestsAllowed: totalNumberRequestsAllowed,
+		logger:                     logger.Namespace("server"),
+		PathToMockId:               map[string]string{},
+		version:                    version,
 	}
 }
 
@@ -91,11 +106,11 @@ func (s HTTPServer) Listen() error {
 	handleFunc(http.MethodGet, "/v1/list", s.list)
 	handleFunc(http.MethodPost, "/v1/new", s.addNewMock)
 
-	if s.SSLEnabled {
+	if s.ssl.enabled {
 		return http.ListenAndServeTLS(
 			":"+s.Port,
-			s.certDirectory+"/"+internal.MOCKAPIC_CERT_FILENAME,
-			s.certDirectory+"/"+internal.MOCKAPIC_PEM_FILENAME,
+			s.ssl.crtFile,
+			s.ssl.keyFile,
 			server,
 		)
 	} else {
@@ -149,8 +164,8 @@ func (s HTTPServer) home(w http.ResponseWriter, r *http.Request) {
 
 	buildStatsTable := func() string {
 		maxLimit := "unlimited"
-		if internal.MOCKAPIC_REQ_MAX_LIMIT > 0 {
-			maxLimit = strconv.Itoa(internal.MOCKAPIC_REQ_MAX_LIMIT)
+		if s.totalNumberRequestsAllowed > 0 {
+			maxLimit = strconv.Itoa(s.totalNumberRequestsAllowed)
 		}
 
 		nb := "N/A"
@@ -278,8 +293,8 @@ func (s HTTPServer) addNewMock(w http.ResponseWriter, r *http.Request) {
 		s.PathToMockId["/v1"+mock.Path] = mock.Id
 	}
 
-	if internal.MOCKAPIC_REQ_MAX_LIMIT > 0 {
-		s.mocker.Clean(internal.MOCKAPIC_REQ_MAX_LIMIT)
+	if s.totalNumberRequestsAllowed > 0 {
+		s.mocker.Clean(s.totalNumberRequestsAllowed)
 	}
 
 	s.countRemoteAddr(r.RemoteAddr)
