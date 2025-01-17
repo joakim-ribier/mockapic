@@ -204,7 +204,7 @@ List APIs available
 | GET      | /static/content-types                 | Get allowed content types           | 200 OK
 | GET      | /static/charsets                      | Get allowed charsets                | 200 OK
 | GET      | /static/status-codes                  | Get allowed status codes            | 200 OK
-| GET+POST | [/v1/{id}](#get-mocked-request)       | Get a mocked request                | 200 OK
+| ALL      | [/v1/{idOrPath}](#get-mocked-request) | Get a mocked request                | `{status mocked}`
 | GET      | [/v1/raw/{id}](#raw-mocked-request)   | Get a raw mocked request            | 200 OK
 | GET      | [/v1/list](#list-requests)            | Get the list of all mocked requests | 200 OK
 | POST     | [/v1/new](#create-new-mocked-request) | Create a new mocked request         | 201 Created

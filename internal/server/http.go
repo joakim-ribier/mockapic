@@ -18,6 +18,14 @@ import (
 	"github.com/joakim-ribier/mockapic/pkg"
 )
 
+var METHODS_ALL = []string{
+	http.MethodDelete,
+	http.MethodGet,
+	http.MethodPatch,
+	http.MethodPost,
+	http.MethodPut,
+}
+
 type SSL struct {
 	enabled bool
 	crtFile string
@@ -100,8 +108,7 @@ func (s HTTPServer) Listen() error {
 	handleFunc(http.MethodGet, "/static/charsets", s.getCharsets)
 	handleFunc(http.MethodGet, "/static/status-codes", s.getStatusCodes)
 
-	handleFuncToMethods(
-		[]string{http.MethodGet, http.MethodPost}, "/v1/", s.getMockedRequest)
+	handleFuncToMethods(METHODS_ALL, "/v1/", s.getMockedRequest)
 	handleFunc(http.MethodGet, "/v1/raw/", s.getMockedRequestRaw)
 	handleFunc(http.MethodGet, "/v1/list", s.list)
 	handleFunc(http.MethodPost, "/v1/new", s.addNewMock)
@@ -153,7 +160,7 @@ func (s HTTPServer) home(w http.ResponseWriter, r *http.Request) {
 		})
 		t.AppendSeparator()
 		t.AppendRows([]table.Row{
-			{"GET", "/v1/{id}", "Get a mocked request"},
+			{"ALL", "/v1/{id}", "Get a mocked request"},
 			{"GET", "/v1/raw/{id}", "Get a raw mocked request"},
 			{"GET", "/v1/list", "Get the list of all mocked requests"},
 			{"POST", "/v1/add", "Create a new mocked request"},
