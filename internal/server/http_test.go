@@ -112,7 +112,7 @@ func TestListenEndpoints(t *testing.T) {
 		mockResponseLights: []internal.MockedRequestLight{mockedRequest.MockedRequestLight}}
 
 	baseURL := "http://localhost:3334"
-	httpServer := NewHTTPServer("3334", false, "", workingDirectory, mockerTest, *logger, "test")
+	httpServer := NewHTTPServer("3334", NewSSL(false, "", "", ""), workingDirectory, -1, mockerTest, *logger, "test")
 
 	go func() {
 		err := httpServer.Listen()
@@ -145,10 +145,7 @@ func TestListenEndpoints(t *testing.T) {
 // TestListen calls HTTPServer.Listen(),
 // checking for a valid return value.
 func TestListenSSL(t *testing.T) {
-	internal.MOCKAPIC_CERT_FILENAME = "example.crt"
-	internal.MOCKAPIC_PEM_FILENAME = "example.key"
-
-	httpServer := NewHTTPServer("3333", true, "cert", workingDirectory, &MockerTest{}, *logger, "test")
+	httpServer := NewHTTPServer("3333", NewSSL(true, "cert", "", ""), workingDirectory, -1, &MockerTest{}, *logger, "test")
 
 	go func() {
 		err := httpServer.Listen()
@@ -183,7 +180,7 @@ func TestRootEndpoint(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "http://localhost:3333/", nil)
 	w := httptest.NewRecorder()
 
-	NewHTTPServer("{port}", false, "", workingDirectory, &MockerTest{}, *logger, "test").home(w, req)
+	NewHTTPServer("{port}", NewSSL(false, "", "", ""), workingDirectory, -1, &MockerTest{}, *logger, "test").home(w, req)
 
 	_, body := geResultResponse(w, t)
 	if !strings.Contains(string(body), internal.LOGO) {
@@ -201,7 +198,7 @@ func TestGetContentTypesEndpoint(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "http://localhost:3333/static/content-types", nil)
 	w := httptest.NewRecorder()
 
-	NewHTTPServer("{port}", false, "", workingDirectory, &MockerTest{}, *logger, "test").getContentTypes(w, req)
+	NewHTTPServer("{port}", NewSSL(false, "", "", ""), workingDirectory, -1, &MockerTest{}, *logger, "test").getContentTypes(w, req)
 
 	_, body := geResultResponse(w, t)
 	if !strings.Contains(string(body), "application/json") {
@@ -219,7 +216,7 @@ func TestGetCharsetsEndpoint(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "http://localhost:3333/static/charsets", nil)
 	w := httptest.NewRecorder()
 
-	NewHTTPServer("{port}", false, "", workingDirectory, &MockerTest{}, *logger, "test").getCharsets(w, req)
+	NewHTTPServer("{port}", NewSSL(false, "", "", ""), workingDirectory, -1, &MockerTest{}, *logger, "test").getCharsets(w, req)
 
 	_, body := geResultResponse(w, t)
 	if !strings.Contains(string(body), "ISO-8859-1") {
@@ -237,7 +234,7 @@ func TestGetStatusCodesEndpoint(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "http://localhost:3333/static/content-types", nil)
 	w := httptest.NewRecorder()
 
-	NewHTTPServer("{port}", false, "", workingDirectory, &MockerTest{}, *logger, "test").getStatusCodes(w, req)
+	NewHTTPServer("{port}", NewSSL(false, "", "", ""), workingDirectory, -1, &MockerTest{}, *logger, "test").getStatusCodes(w, req)
 
 	_, body := geResultResponse(w, t)
 	if !strings.Contains(string(body), "Method Not Allowed") {
@@ -255,7 +252,7 @@ func TestGetMockedRequestEndpointIdNotFound(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "http://localhost:3333/v1/{id-not-found}", nil)
 	w := httptest.NewRecorder()
 
-	NewHTTPServer("{port}", false, "", workingDirectory, &MockerTest{}, *logger, "test").getMockedRequest(w, req)
+	NewHTTPServer("{port}", NewSSL(false, "", "", ""), workingDirectory, -1, &MockerTest{}, *logger, "test").getMockedRequest(w, req)
 
 	res, _ := geResultResponse(w, t)
 	if res.Status != "404 Not Found" {
@@ -284,7 +281,7 @@ func TestGetMockedRequestEndpointWithId(t *testing.T) {
 		},
 	}
 
-	NewHTTPServer("{port}", false, "", workingDirectory, mocker, *logger, "test").getMockedRequest(w, req)
+	NewHTTPServer("{port}", NewSSL(false, "", "", ""), workingDirectory, -1, mocker, *logger, "test").getMockedRequest(w, req)
 
 	res, _ := geResultResponse(w, t)
 	if res.Status != "200 OK" {
@@ -314,7 +311,7 @@ func TestGetMockedRequestEndpointWithPath(t *testing.T) {
 		},
 	}
 
-	s := NewHTTPServer("{port}", false, "", workingDirectory, mocker, *logger, "test")
+	s := NewHTTPServer("{port}", NewSSL(false, "", "", ""), workingDirectory, -1, mocker, *logger, "test")
 	s.PathToMockId["/my-path"] = "{id}"
 
 	s.getMockedRequest(w, req)
@@ -334,7 +331,7 @@ func TestGetMockedRequestEndpointWithBadRequestURI(t *testing.T) {
 	mocker := &MockerTest{}
 
 	req.RequestURI = "{bad request uri}"
-	NewHTTPServer("{port}", false, "", workingDirectory, mocker, *logger, "test").getMockedRequest(w, req)
+	NewHTTPServer("{port}", NewSSL(false, "", "", ""), workingDirectory, -1, mocker, *logger, "test").getMockedRequest(w, req)
 
 	res, _ := geResultResponse(w, t)
 	if res.Status != "409 Conflict" {
@@ -367,7 +364,7 @@ func TestGetMockedRequestRawEndpoint(t *testing.T) {
 		},
 	}
 
-	NewHTTPServer("{port}", false, "", workingDirectory, mocker, *logger, "test").getMockedRequestRaw(w, req)
+	NewHTTPServer("{port}", NewSSL(false, "", "", ""), workingDirectory, -1, mocker, *logger, "test").getMockedRequestRaw(w, req)
 
 	res, data := geResultResponse(w, t)
 
@@ -388,7 +385,7 @@ func TestListEndpointWithError(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "http://localhost:3333/v1/list", nil)
 	w := httptest.NewRecorder()
 
-	NewHTTPServer("{port}", false, "", workingDirectory, &MockerTest{}, *logger, "test").list(w, req)
+	NewHTTPServer("{port}", NewSSL(false, "", "", ""), workingDirectory, -1, &MockerTest{}, *logger, "test").list(w, req)
 
 	res, body := geResultResponse(w, t)
 	if res.Status != "500 Internal Server Error" || string(body) != `{"message": "error to list mocked responses"}` {
@@ -424,7 +421,7 @@ func TestListEndpoint(t *testing.T) {
 			},
 		},
 	}
-	NewHTTPServer("{port}", false, "", workingDirectory, mocker, *logger, "test").list(w, req)
+	NewHTTPServer("{port}", NewSSL(false, "", "", ""), workingDirectory, -1, mocker, *logger, "test").list(w, req)
 
 	res, body := geResultResponse(w, t)
 
@@ -443,7 +440,7 @@ func TestListEndpointReturnsEmptyNilInsteadOfNull(t *testing.T) {
 	mocker := &MockerTest{
 		mockResponseLights: []internal.MockedRequestLight{},
 	}
-	NewHTTPServer("{port}", false, "", workingDirectory, mocker, *logger, "test").list(w, req)
+	NewHTTPServer("{port}", NewSSL(false, "", "", ""), workingDirectory, -1, mocker, *logger, "test").list(w, req)
 
 	res, body := geResultResponse(w, t)
 
@@ -459,7 +456,6 @@ func TestListEndpointReturnsEmptyNilInsteadOfNull(t *testing.T) {
 // TestAddNewEndpoint calls HTTPServer.addNewMock(http.ResponseWriter, *http.Request),
 // checking for a valid return value.
 func TestAddNewEndpoint(t *testing.T) {
-	internal.MOCKAPIC_REQ_MAX_LIMIT = 100
 	err := iosutil.Write([]byte(``), workingDirectory+"/remote-addr.json")
 	if err != nil {
 		t.Errorf("Error: %v", err)
@@ -470,7 +466,7 @@ func TestAddNewEndpoint(t *testing.T) {
 	w := httptest.NewRecorder()
 
 	mocker := &MockerTest{mockResponse: nil, clean: false}
-	s := NewHTTPServer("{port}", false, "", workingDirectory, mocker, *logger, "test")
+	s := NewHTTPServer("{port}", NewSSL(false, "", "", ""), workingDirectory, 100, mocker, *logger, "test")
 
 	s.addNewMock(w, req)
 
@@ -506,7 +502,7 @@ func TestAddNewEndpointWithBadRequest(t *testing.T) {
 	w := httptest.NewRecorder()
 
 	mocker := &MockerTest{mockResponse: nil}
-	NewHTTPServer("{port}", false, "", workingDirectory, mocker, *logger, "test").addNewMock(w, req)
+	NewHTTPServer("{port}", NewSSL(false, "", "", ""), workingDirectory, -1, mocker, *logger, "test").addNewMock(w, req)
 
 	res, body := geResultResponse(w, t)
 
@@ -519,7 +515,7 @@ func TestAddNewEndpointWithBadRequest(t *testing.T) {
 // TestFindRemoteAddr calls HTTPServer.findRemoteAddr(string),
 // checking for a valid return value.
 func TestFindRemoteAddr(t *testing.T) {
-	httpServer := NewHTTPServer("{port}", false, "", workingDirectory, &MockerTest{}, *logger, "test")
+	httpServer := NewHTTPServer("{port}", NewSSL(false, "", "", ""), workingDirectory, -1, &MockerTest{}, *logger, "test")
 
 	if r := httpServer.findRemoteAddr("127.0.0.1:3333"); r != "127.0.0.1" {
 		t.Fatalf(`result: {%v} but expected {%v}`, r, "127.0.0.1")
@@ -543,7 +539,7 @@ func TestGetRemoteAddr(t *testing.T) {
 		t.Errorf("Error: %v", err)
 	}
 
-	httpServer := NewHTTPServer("{port}", false, "", workingDirectory, &MockerTest{}, *logger, "test")
+	httpServer := NewHTTPServer("{port}", NewSSL(false, "", "", ""), workingDirectory, -1, &MockerTest{}, *logger, "test")
 
 	r := httpServer.getRemoteAddr()
 
@@ -560,7 +556,7 @@ func TestGetRemoteAddrWithBadContent(t *testing.T) {
 		t.Errorf("Error: %v", err)
 	}
 
-	httpServer := NewHTTPServer("{port}", false, "", workingDirectory, &MockerTest{}, *logger, "test")
+	httpServer := NewHTTPServer("{port}", NewSSL(false, "", "", ""), workingDirectory, -1, &MockerTest{}, *logger, "test")
 
 	if r := httpServer.getRemoteAddr(); len(r) != 0 {
 		t.Fatalf(`result: {%v} but expected {%v}`, r, "empty result")
@@ -575,7 +571,7 @@ func TestCountRemoteAddr(t *testing.T) {
 		t.Errorf("Error: %v", err)
 	}
 
-	httpServer := NewHTTPServer("{port}", false, "", workingDirectory, &MockerTest{}, *logger, "test")
+	httpServer := NewHTTPServer("{port}", NewSSL(false, "", "", ""), workingDirectory, -1, &MockerTest{}, *logger, "test")
 
 	httpServer.countRemoteAddr("92.1.34.1")
 	httpServer.countRemoteAddr("192.1.34.1")

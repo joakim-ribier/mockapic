@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log"
 	"os"
@@ -9,82 +10,69 @@ import (
 	"github.com/joakim-ribier/go-utils/pkg/iosutil"
 	"github.com/joakim-ribier/go-utils/pkg/jsonsutil"
 	"github.com/joakim-ribier/go-utils/pkg/logsutil"
-	"github.com/joakim-ribier/go-utils/pkg/slicesutil"
 	"github.com/joakim-ribier/go-utils/pkg/stringsutil"
 	"github.com/joakim-ribier/mockapic/internal"
 	"github.com/joakim-ribier/mockapic/internal/server"
 )
 
-var MOCKAPIC_HOME = os.Getenv("MOCKAPIC_HOME")
-var MOCKAPIC_PORT = os.Getenv("MOCKAPIC_PORT")
-var MOCKAPIC_REQUEST = func() string {
-	return MOCKAPIC_HOME + "/requests"
-}
-var MOCKAPIC_REQ_PREDEFINED_FILE = func() string {
-	return MOCKAPIC_HOME + "/mockapic.json"
-}
-
 func main() {
-	args := slicesutil.ToMap(os.Args[1:])
+	reqMaxLimit := flag.Int("req_max", stringsutil.Int(os.Getenv("MOCKAPIC_REQ_MAX_LIMIT"), -1), "define the nb requests max limit")
+	port := flag.String("port", stringsutil.OrElse(os.Getenv("MOCKAPIC_PORT"), "3333"), "define the server [port]")
+	workingDir := flag.String("home", stringsutil.OrElse(os.Getenv("MOCKAPIC_HOME"), "."), "define the [working home] directory")
 
-	if arg, ok := args["--home"]; ok {
-		MOCKAPIC_HOME = arg
-	}
-	if _, err := os.Open(MOCKAPIC_HOME); err != nil {
-		log.Fatalf("'--home' parameter must be a valid directory.\n%v", err)
-	}
+	ssl := flag.Bool("ssl", stringsutil.Bool(stringsutil.OrElse(os.Getenv("MOCKAPIC_SSL"), "false")), "enable [ssl] mode")
+	certificatesDir := flag.String("cert", os.Getenv("MOCKAPIC_CERT"), "define the [certificate] directory that contains the *crt and the *key files if [ssl] mode enabled")
+	crtFilePath := flag.String("crt", os.Getenv("MOCKAPIC_CRT_FILE_PATH"), "define the [*crt] file path if [ssl] mode enabled")
+	keyFilePath := flag.String("key", os.Getenv("MOCKAPIC_KEY_FILE_PATH"), "define the [*key] file path if [ssl] mode enabled")
 
-	if arg, ok := args["--req_max"]; ok {
-		internal.MOCKAPIC_REQ_MAX_LIMIT = stringsutil.Int(arg, -1)
-	}
-	if arg, ok := args["--port"]; ok {
-		MOCKAPIC_PORT = arg
-	}
-	if arg, ok := args["--cert"]; ok {
-		internal.MOCKAPIC_CERT_DIRECTORY = arg
-	}
-	if arg, ok := args["--ssl"]; ok {
-		internal.MOCKAPIC_SSL = stringsutil.Bool(arg)
-		if internal.MOCKAPIC_SSL && internal.MOCKAPIC_CERT_DIRECTORY == "" {
-			internal.MOCKAPIC_CERT_DIRECTORY = MOCKAPIC_HOME
-		}
-	}
+	flag.Parse()
+	log.SetFlags(log.LstdFlags | log.Lmicroseconds)
 
-	logger, err := logsutil.NewLogger(MOCKAPIC_HOME+"/application.log", "mockapic")
+	logger, err := logsutil.NewLogger(*workingDir+"/application.log", "mockapic")
 	if err != nil {
 		log.Fatalf("%v", err)
 	}
 
+	if _, err := os.Open(*workingDir); err != nil {
+		log.Fatalf("'--home' parameter {%s} must be a valid directory.\n%v", *workingDir, err)
+	}
+	requestsDir := *workingDir + "/requests"
+	requestsPredefinedFile := *workingDir + "/mockapic.json"
+	*certificatesDir = genericsutil.When[bool, string](*ssl, func(b bool) bool { return *ssl && *certificatesDir == "" }, *workingDir, *certificatesDir)
+
 	logger.Info(internal.LOGO,
-		"home", MOCKAPIC_HOME,
-		"port", MOCKAPIC_PORT,
-		"ssl", internal.MOCKAPIC_SSL,
-		"req_max", internal.MOCKAPIC_REQ_MAX_LIMIT,
+		"home", workingDir,
+		"port", port,
+		"ssl", ssl,
+		"cert", certificatesDir,
+		"crt", crtFilePath,
+		"key", keyFilePath,
+		"req_max", reqMaxLimit,
 	)
 
-	err = os.MkdirAll(MOCKAPIC_REQUEST(), os.ModePerm)
+	err = os.MkdirAll(requestsDir, os.ModePerm)
 	if err != nil {
 		log.Fatalf("%v", err)
 	}
 
 	predefinedMockedRequests := []internal.PredefinedMockedRequest{}
-	data, err := iosutil.Load(MOCKAPIC_REQ_PREDEFINED_FILE())
+	data, err := iosutil.Load(requestsPredefinedFile)
 	if err != nil {
-		logger.Error(err, fmt.Sprintf("file {%s} not found", MOCKAPIC_REQ_PREDEFINED_FILE()))
+		logger.Error(err, fmt.Sprintf("file {%s} not found", requestsPredefinedFile))
 	} else {
 		predefinedMockedRequests, err = jsonsutil.Unmarshal[[]internal.PredefinedMockedRequest](data)
 		if err != nil {
-			logger.Error(err, fmt.Sprintf("file {%s} cannot be parsed", MOCKAPIC_REQ_PREDEFINED_FILE()))
+			logger.Error(err, fmt.Sprintf("file {%s} cannot be parsed", requestsPredefinedFile))
 		}
 	}
 
-	mock := internal.NewMock(MOCKAPIC_REQUEST(), predefinedMockedRequests, *logger)
+	mock := internal.NewMock(requestsDir, predefinedMockedRequests, *logger)
 
 	httpServer := server.NewHTTPServer(
-		stringsutil.OrElse(MOCKAPIC_PORT, "3333"),
-		internal.MOCKAPIC_SSL,
-		internal.MOCKAPIC_CERT_DIRECTORY,
-		MOCKAPIC_HOME,
+		stringsutil.OrElse(*port, "3333"),
+		server.NewSSL(*ssl, *certificatesDir, *crtFilePath, *keyFilePath),
+		*workingDir,
+		*reqMaxLimit,
 		mock,
 		*logger,
 		version())
@@ -103,7 +91,7 @@ func main() {
 	}
 
 	fmt.Printf("\nServer running on port %s[:%s]....\n",
-		genericsutil.When(internal.MOCKAPIC_SSL, func(arg bool) bool { return arg }, "https", "http"),
+		genericsutil.When(*ssl, func(arg bool) bool { return arg }, "https", "http"),
 		httpServer.Port)
 
 	if err := httpServer.Listen(); err != nil {

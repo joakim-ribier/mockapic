@@ -66,9 +66,11 @@ Parameters of the service
 | ---       | ---                     | ---                         | ---              | ---
 | --home    | MOCKAPIC_HOME           | /usr/app/mockapic           | .                | Define the working directory
 | --port    | MOCKAPIC_PORT           | 3333                        | 3333             | Define a specific port
-| --req_max | MOCKAPIC_REQ_MAX_LIMIT  | 100                         | -1 (`unlimited`) | Define the max limit of the mocked requests
-| --ssl     | MOCKAPIC_SSL            | true                        | false            | Enable SSL/Tls HTTP server (need to provide certificate)
-| --cert    | MOCKAPIC_CERT           | /usr/app/mockapic           | .                | Define the certificate directory which should contain (`mockapic.cert` and `mockapic.key`)
+| --req_max | MOCKAPIC_REQ_MAX_LIMIT  | 100                         | -1 (`unlimited`) | Define the total number of the mocked requests allowed
+| --ssl     | MOCKAPIC_SSL            | true                        | false            | Enable SSL/TLS HTTP server (need to provide certificate files)
+| --cert    | MOCKAPIC_CERT           | /usr/app/mockapic           | .                | Define the certificate directory that contains (`mockapic.crt` and `mockapic.key`)
+| --crt     | MOCKAPIC_CRT_FILE_PATH  | /usr/app/mockapic/*.crt     | ./mockapic.crt   | Define the `*crt` file path
+| --key     | MOCKAPIC_KEY_FILE_PATH  | /usr/app/mockapic/*.key     | ./mockapic.key   | Define the `*key` file path
 
 1. Start `Mockapic`
 
@@ -323,6 +325,8 @@ $ docker run -it --rm \
     -e MOCKAPIC_REQ_MAX_LIMIT=100 -e MOCKAPIC_SSL=true \
     -v /home/{user}/app/mockapic:/usr/app/mockapic \
     -v /home/{user}/app/mockapic/mockapic.json:/usr/app/mockapic/mockapic.json \
+    -v /home/{user}/app/mockapic/mockapic.crt:/usr/app/mockapic/mockapic.crt \
+    -v /home/{user}/app/mockapic/mockapic.key:/usr/app/mockapic/mockapic.key \
     joakimribier/mockapic
 ```
 

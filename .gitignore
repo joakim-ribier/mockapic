@@ -26,5 +26,6 @@ go.work.sum
 *application.log
 *remote-addr.json
 *requests/
-cert/mockapic*
+*mockapic.crt
+*mockapic.key
 mockapic
