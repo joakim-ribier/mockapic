@@ -3,10 +3,7 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/joakim-ribier/mockapic)](https://goreportcard.com/report/github.com/joakim-ribier/mockapic)
 ![Software License](https://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat-square)
 [![Go Reference](https://pkg.go.dev/badge/image)](https://pkg.go.dev/github.com/joakim-ribier/mockapic)
-
 [![codecov](https://codecov.io/gh/joakim-ribier/mockapic/graph/badge.svg?token=AUAOC8992T)](https://codecov.io/gh/joakim-ribier/mockapic)
-![example workflow](https://github.com/joakim-ribier/mockapic/actions/workflows/build-test-and-coverage.yml/badge.svg)
-![example workflow](https://github.com/joakim-ribier/mockapic/actions/workflows/build-and-push-container.yml/badge.svg)
 
 [![Docker Pulls](https://badgen.net/docker/pulls/joakimribier/mockapic?icon=docker&label=pulls)](https://hub.docker.com/r/joakimribier/mockapic/)
 [![Docker Image Size](https://badgen.net/docker/size/joakimribier/mockapic?icon=docker&label=image%20size)](https://hub.docker.com/r/joakimribier/mockapic/)
