@@ -16,8 +16,13 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        goos: [linux, darwin]
-        goarch: [amd64, arm64]
+        goos: [linux, darwin, windows]
+        goarch: ["386", amd64, arm64]
+        exclude:
+          - goarch: "386"
+            goos: darwin
+          - goarch: arm64
+            goos: windows
     steps:
     - uses: actions/checkout@v4
     - uses: wangyoucao577/go-release-action@v1.51
@@ -25,10 +30,10 @@ jobs:
         github_token: ${{ secrets.GITHUB_TOKEN }}
         goos: ${{ matrix.goos }}
         goarch: ${{ matrix.goarch }}
-        goversion: 1.22.5
+        goversion: 1.23.4
         project_path: "./cmd/httpserver"
         binary_name: "mockapic"
-        extra_files: LICENSE README.md
+        extra_files: LICENSE README.md generated-version.txt
   build_docker:
     needs: make_release
     uses: ./.github/workflows/build-and-push-container_reusable.yml

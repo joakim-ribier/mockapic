@@ -1,0 +1,27 @@
+name: Pre-release (Bum the release version)
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Define the new version (x.x.x)'
+        required: true
+        type: string
+
+jobs:
+  pre_release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+    - name: Check out the repo
+      uses: actions/checkout@v4
+
+    - name: Bump the release version
+      run: |
+        git config user.name 'github-actions[bot]'
+        git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+        echo ${{ inputs.version }} > ./generated-version.txt
+        git commit -am "chore: set version to ${{ inputs.version }}"
+        git push
