@@ -17,6 +17,8 @@ RUN go build -v -o . ./...
 ## Step 2: Runtime stage
 FROM scratch
 
+EXPOSE 3333
+
 # set ENV variables
 ENV MOCKAPIC_PORT=3333
 ENV MOCKAPIC_HOME=/usr/app/mockapic
