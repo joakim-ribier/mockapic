@@ -30,7 +30,7 @@ jobs:
 
     - name: Generate 'latest' version
       if: ${{ inputs.version == 'latest' }}
-      run: git log --format=%h -n1 > ./generated-version.txt
+      run: git log --format=%h -n1 > ./pkg/resources/generated-version.txt
 
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3

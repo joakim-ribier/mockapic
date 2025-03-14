@@ -13,6 +13,7 @@ import (
 	"github.com/joakim-ribier/go-utils/pkg/stringsutil"
 	"github.com/joakim-ribier/mockapic/internal"
 	"github.com/joakim-ribier/mockapic/internal/server"
+	"github.com/joakim-ribier/mockapic/pkg/resources"
 )
 
 func main() {
@@ -75,7 +76,7 @@ func main() {
 		*reqMaxLimit,
 		mock,
 		*logger,
-		version())
+		resources.Version)
 
 	fmt.Print(internal.LOGO)
 
@@ -97,13 +98,4 @@ func main() {
 	if err := httpServer.Listen(); err != nil {
 		log.Fatal("could not open httpServer", err)
 	}
-}
-
-// version reads the version number from the auto generated file {generated-version.txt}
-func version() string {
-	version, err := os.ReadFile("generated-version.txt")
-	if err != nil {
-		return "unknown"
-	}
-	return string(version)
 }

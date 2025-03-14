@@ -33,7 +33,7 @@ jobs:
         goversion: 1.23.4
         project_path: "./cmd/httpserver"
         binary_name: "mockapic"
-        extra_files: LICENSE README.md generated-version.txt
+        extra_files: LICENSE README.md ./pkg/resources/generated-version.txt
   build_docker:
     needs: make_release
     uses: ./.github/workflows/build-and-push-container_reusable.yml

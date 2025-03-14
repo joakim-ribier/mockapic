@@ -22,6 +22,6 @@ jobs:
       run: |
         git config user.name 'github-actions[bot]'
         git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-        echo ${{ inputs.version }} > ./generated-version.txt
+        echo ${{ inputs.version }} > ./pkg/resources/generated-version.txt
         git commit -am "chore: set version to ${{ inputs.version }}"
         git push
