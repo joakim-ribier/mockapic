@@ -27,7 +27,7 @@ ENV MOCKAPIC_REQ_MAX_LIMIT=-1
  # if true the *.crt and *.key files must be provided
 ENV MOCKAPIC_SSL=false
 
-COPY --from=builder /usr/src/app/mockapic/httpserver /usr/app/mockapic/
-COPY mockapic.json /usr/app/mockapic/
+COPY --from=builder /usr/src/app/mockapic/httpserver /
+COPY --from=builder /usr/src/app/mockapic/mockapic.json /usr/app/mockapic/
 
-CMD ["./usr/app/mockapic/httpserver"]
+CMD ["./httpserver"]
