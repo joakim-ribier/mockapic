@@ -1,4 +1,4 @@
-FROM golang:1.23.4
+FROM golang:1.23.7
 
 # source
 RUN mkdir -p /usr/src/app/mockapic
