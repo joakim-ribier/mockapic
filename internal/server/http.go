@@ -161,6 +161,7 @@ func (s HTTPServer) home(w http.ResponseWriter, r *http.Request) {
 		t.AppendSeparator()
 		t.AppendRows([]table.Row{
 			{"ALL", "/v1/{id}", "Get a mocked request"},
+			{"ALL", "/v1/{statusCode}", "Get a mocked request based on the http status code"},
 			{"GET", "/v1/raw/{id}", "Get a raw mocked request"},
 			{"GET", "/v1/list", "Get the list of all mocked requests"},
 			{"POST", "/v1/add", "Create a new mocked request"},
@@ -246,6 +247,14 @@ func (s HTTPServer) findMockedRequest(r *http.Request) (*internal.MockedRequest,
 			return nil, 409, err
 		}
 		mockId = path.Base(url.Path)
+	}
+
+	// return a mocked request based on the http status code
+	if httpCode, err := strconv.Atoi(mockId); err == nil {
+		if value, ok := pkg.HTTP_CODES[httpCode]; ok {
+			mockedRequest := internal.NewMockedRequest(httpCode, value)
+			return &mockedRequest, -1, nil
+		}
 	}
 
 	mock, err := s.mocker.Get(mockId)
