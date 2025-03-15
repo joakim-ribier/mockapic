@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"os"
 	"reflect"
+	"strconv"
 	"time"
 
 	"github.com/google/uuid"
@@ -36,6 +37,21 @@ type MockedRequest struct {
 	MockedRequestLight
 	Body   string `json:"body,omitempty"`
 	Body64 []byte `json:"body64,omitempty"`
+}
+
+func NewMockedRequest(httpCode int, body string) MockedRequest {
+	return MockedRequest{
+		MockedRequestLight: MockedRequestLight{
+			Id:        strconv.Itoa(httpCode),
+			CreatedAt: time.Now().Format("2006-01-02 15:04:05"),
+			MockedRequestHeader: MockedRequestHeader{
+				Status:      httpCode,
+				ContentType: "text/plain",
+				Charset:     "UTF-8",
+			},
+		},
+		Body64: []byte(body),
+	}
 }
 
 type PredefinedMockedRequest struct {

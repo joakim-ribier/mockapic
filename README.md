@@ -195,16 +195,17 @@ $ ./httpserver \
 
 List APIs available
 
-| Method   | Endpoint                              | Description                         | Status code
-| ---      | ---                                   | ---                                 | ---
-| GET      | /                                     | Get info                            | 200 OK
-| GET      | /static/content-types                 | Get allowed content types           | 200 OK
-| GET      | /static/charsets                      | Get allowed charsets                | 200 OK
-| GET      | /static/status-codes                  | Get allowed status codes            | 200 OK
-| ALL      | [/v1/{idOrPath}](#get-mocked-request) | Get a mocked request                | `{status mocked}`
-| GET      | [/v1/raw/{id}](#raw-mocked-request)   | Get a raw mocked request            | 200 OK
-| GET      | [/v1/list](#list-requests)            | Get the list of all mocked requests | 200 OK
-| POST     | [/v1/new](#create-new-mocked-request) | Create a new mocked request         | 201 Created
+| Method   | Endpoint                                         | Description                                    | Status code
+| ---      | ---                                              | ---                                            | ---
+| GET      | /                                                | Get info                                       | 200 OK
+| GET      | /static/content-types                            | Get allowed content types                      | 200 OK
+| GET      | /static/charsets                                 | Get allowed charsets                           | 200 OK
+| GET      | /static/status-codes                             | Get allowed status codes                       | 200 OK
+| ALL      | [/v1/{idOrPath}](#get-mocked-request)            | Get a mocked request                           | `{mocked status}`
+| ALL      | [/v1/{statusCode}](#get-mocked-request-based-on) | Get a mocked request based on the {statusCode} | `{mocked status}`
+| GET      | [/v1/raw/{id}](#raw-mocked-request)              | Get a raw mocked request                       | 200 OK
+| GET      | [/v1/list](#list-requests)                       | Get the list of all mocked requests            | 200 OK
+| POST     | [/v1/new](#create-new-mocked-request)            | Create a new mocked request                    | 201 Created
 
 #### Create New Mocked Request
 
@@ -240,6 +241,17 @@ $ curl -X GET '~/v1/{id}?delay=100ms'
 | ---         | ---      | ---
 | {id}        | [x]      | Request identifier returned by the POST API
 | delay       |          | Parameter to the URL to delay the response - Maximum delay: `60s`
+
+#### Get Mocked Request Based On
+
+```bash
+$ curl -X GET '~/v1/{httpCodeStatus}?delay=100ms'
+```
+
+| Field            | Required | Value
+| ---              | ---      | ---
+| {httpCodeStatus} | [x]      | An http code status from `~/static/status-codes`
+| delay            |          | Parameter to the URL to delay the response - Maximum delay: `60s`
 
 #### Raw Mocked Request
 

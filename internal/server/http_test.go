@@ -322,6 +322,20 @@ func TestGetMockedRequestEndpointWithPath(t *testing.T) {
 	}
 }
 
+func TestGetMockedRequestEndpointWithStatusCode(t *testing.T) {
+	req := httptest.NewRequest(http.MethodGet, "http://localhost:3333/v1/418", nil)
+	w := httptest.NewRecorder()
+
+	mocker := &MockerTest{}
+
+	NewHTTPServer("{port}", NewSSL(false, "", "", ""), workingDirectory, -1, mocker, *logger, "test").getMockedRequest(w, req)
+
+	res, _ := geResultResponse(w, t)
+	if res.Status != "418 I'm a teapot" {
+		t.Fatalf(`result: {%v} but expected {%v}`, res, mocker)
+	}
+}
+
 // TestGetMockedRequestEndpointWithBadRequestURI calls HTTPServer.getMockedRequest(http.ResponseWriter, *http.Request),
 // checking for a valid return value.
 func TestGetMockedRequestEndpointWithBadRequestURI(t *testing.T) {
