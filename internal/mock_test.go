@@ -312,6 +312,29 @@ func TestNewWithBadContentType(t *testing.T) {
 	}
 }
 
+// TestNewMockedRequestFromHttpCode calls NewMockedRequestFromHttpCode,
+// checking for a valid return value.
+func TestNewMockedRequestFromHttpCode(t *testing.T) {
+	r := NewMockedRequestFromHttpCode(418, "I'm a teapot")
+
+	expected := MockedRequest{
+		MockedRequestLight: MockedRequestLight{
+			Id:        "418",
+			CreatedAt: time.Now().Format("2006-01-02 15:04:05"),
+			MockedRequestHeader: MockedRequestHeader{
+				Status:      418,
+				ContentType: "text/plain",
+				Charset:     "UTF-8",
+			},
+		},
+		Body64: []byte("I'm a teapot"),
+	}
+
+	if !r.Equals(expected) {
+		t.Fatalf(`result: {%v} but expected {%v}`, r, expected)
+	}
+}
+
 func createMockedRequest() MockedRequest {
 	mockedRequest := MockedRequest{
 		MockedRequestLight: MockedRequestLight{
