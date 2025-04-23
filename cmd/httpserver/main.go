@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 
 	"github.com/joakim-ribier/go-utils/pkg/genericsutil"
 	"github.com/joakim-ribier/go-utils/pkg/iosutil"
@@ -76,7 +77,7 @@ func main() {
 		*reqMaxLimit,
 		mock,
 		*logger,
-		resources.Version)
+		strings.TrimSuffix(resources.Version, "\n"))
 
 	fmt.Print(internal.LOGO)
 

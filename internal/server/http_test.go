@@ -189,6 +189,24 @@ func TestRootEndpoint(t *testing.T) {
 }
 
 // ##
+// #### ~/status
+// ##
+
+// TestStatusEndpoint calls HTTPServer.status(http.ResponseWriter, *http.Request),
+// checking for a valid return value.
+func TestStatusEndpoint(t *testing.T) {
+	req := httptest.NewRequest(http.MethodGet, "http://localhost:3333/status", nil)
+	w := httptest.NewRecorder()
+
+	NewHTTPServer("{port}", NewSSL(false, "", "", ""), workingDirectory, -1, &MockerTest{}, *logger, "v-test").status(w, req)
+
+	_, body := geResultResponse(w, t)
+	if !strings.Contains(string(body), `{"version":"v-test"}`) {
+		t.Fatalf(`result: {%v} but expected {%v}`, string(body), `{"version":"v-test"}`)
+	}
+}
+
+// ##
 // #### ~/static/content-types endpoint
 // ##
 
