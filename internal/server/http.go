@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"path"
 	"strconv"
+	"strings"
 
 	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/joakim-ribier/go-utils/pkg/iosutil"
@@ -16,6 +17,7 @@ import (
 	"github.com/joakim-ribier/go-utils/pkg/stringsutil"
 	"github.com/joakim-ribier/mockapic/internal"
 	"github.com/joakim-ribier/mockapic/pkg"
+	"github.com/rs/cors"
 )
 
 var METHODS_ALL = []string{
@@ -103,6 +105,7 @@ func (s HTTPServer) Listen() error {
 	}
 
 	handleFunc(http.MethodGet, "/", s.home)
+	handleFunc(http.MethodGet, "/status", s.status)
 
 	handleFunc(http.MethodGet, "/static/content-types", s.getContentTypes)
 	handleFunc(http.MethodGet, "/static/charsets", s.getCharsets)
@@ -113,16 +116,29 @@ func (s HTTPServer) Listen() error {
 	handleFunc(http.MethodGet, "/v1/list", s.list)
 	handleFunc(http.MethodPost, "/v1/new", s.addNewMock)
 
+	cors := cors.New(cors.Options{
+		AllowOriginFunc: func(origin string) bool {
+			return strings.HasPrefix(origin, "http://localhost:") || strings.HasPrefix(origin, "http://127.0.0.1:")
+		},
+		AllowedMethods:   METHODS_ALL,
+		AllowCredentials: false,
+	})
+	handler := cors.Handler(server)
+
 	if s.ssl.enabled {
 		return http.ListenAndServeTLS(
 			":"+s.Port,
 			s.ssl.crtFile,
 			s.ssl.keyFile,
-			server,
+			handler,
 		)
 	} else {
-		return http.ListenAndServe(":"+s.Port, server)
+		return http.ListenAndServe(":"+s.Port, handler)
 	}
+}
+
+func (s HTTPServer) status(w http.ResponseWriter, r *http.Request) {
+	s.writeResponse(w, r, map[string]any{"version": s.version}, http.StatusOK)
 }
 
 func (s HTTPServer) home(w http.ResponseWriter, r *http.Request) {

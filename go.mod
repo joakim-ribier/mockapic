@@ -1,11 +1,12 @@
 module github.com/joakim-ribier/mockapic
 
-go 1.23.7
+go 1.23.8
 
 require (
 	github.com/google/uuid v1.6.0
 	github.com/jedib0t/go-pretty/v6 v6.5.9
 	github.com/joakim-ribier/go-utils v0.0.0-20240807210644-38116094b686
+	github.com/rs/cors v1.11.1
 )
 
 require (
