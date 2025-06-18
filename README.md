@@ -21,7 +21,7 @@ It's always complicated to test easly your application when it uses external API
 
 It's for all these reasons that I created `Mockapic` (based on the awesome [mocky.io](https://designer.mocky.io/) idea). The main goal is to be able to better test your code on several behaviors when calling external API services.
 
-[Usage](#usage) - [How it works](#how-it-works) - [APIs](#apis) - [Test](#test) - [Docker](#docker) - [CI](#ci) - [Demo](#demo) - [Thanks](#thanks) - [License](#license)
+[Usage](#usage) - [How it works](#how-it-works) - [APIs](#apis) - [Test](#test) - [Release](#release) - [Docker](#docker) - [CI](#ci) - [Demo](#demo) - [Thanks](#thanks) - [License](#license)
 
 ## Usage
 
@@ -320,7 +320,12 @@ ok  	github.com/joakim-ribier/mockapic/internal	1.642s	coverage: 100.0% of state
 ok  	github.com/joakim-ribier/mockapic/internal/server	2.181s	coverage: 91.0% of statements
 ```
 
-## Docker
+## Release
+
+1. Bump the new version with the manual workflow: [Pre-release (Bump the release version)](.github/workflows/pre-release.yml)
+2. Create a new release from [mockapic/releases](https://github.com/joakim-ribier/mockapic/releases) - This action will automatically trigger [Publish binaries and tag Docker image](.github/workflows/release.yml) workflow.
+
+## Docker 
 
 ### Pull and Run
 

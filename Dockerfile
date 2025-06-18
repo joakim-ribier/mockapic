@@ -1,5 +1,5 @@
 ### Step 1: Build stage
-FROM golang:1.23.7-alpine AS builder
+FROM golang:1.24.4-alpine AS builder
 
 # source
 RUN mkdir -p /usr/src/app/mockapic

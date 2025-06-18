@@ -19,7 +19,7 @@ jobs:
     - name: Set up Go
       uses: actions/setup-go@v5
       with:
-        go-version: '1.23.4'
+        go-version: '1.24.4'
 
     - name: Build
       run: go build -v ./...
@@ -37,5 +37,5 @@ jobs:
     - name: Check vulnerabilities
       uses: golang/govulncheck-action@v1
       with:
-        go-version-input: 1.23.4
+        go-version-input: 1.24.4
         go-package: ./...

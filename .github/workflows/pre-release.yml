@@ -1,4 +1,4 @@
-name: Pre-release (Bum the release version)
+name: Pre-release (Bump the release version)
 
 on:
   workflow_dispatch:
